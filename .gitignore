@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Java
+backend/build/
+target/
+
+# Local runtime state
+.agent-state.json
+
