@@ -6,6 +6,16 @@ __pycache__/
 backend/build/
 target/
 
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.npm-cache/
+frontend/*.log
+
+# Local backend configuration
+backend/application-local.yml
+backend/src/main/resources/application-local.yml
+agent/agent.yml
+
 # Local runtime state
 .agent-state.json
-

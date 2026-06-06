@@ -34,6 +34,19 @@ class AgentConfigTest(unittest.TestCase):
             self.assertEqual(config.service_discovery_interval_seconds, 30)
             self.assertEqual(config.state_file, Path(tmp) / ".agent-state.json")
 
+    def test_repository_example_config_can_be_loaded_for_demo(self):
+        config_path = Path(__file__).resolve().parents[1] / "agent.example.yml"
+
+        config = load_config(config_path)
+
+        self.assertEqual(config.server_url, "http://localhost:8080/api")
+        self.assertEqual(config.register_token, "demo-register-token")
+        self.assertEqual(config.host_alias, "demo-host-a")
+        self.assertEqual(config.host_metric_interval_seconds, 5)
+        self.assertEqual(config.heartbeat_interval_seconds, 10)
+        self.assertEqual(config.service_discovery_interval_seconds, 30)
+        self.assertEqual(config.state_file, config_path.parent / ".agent-state.json")
+
 
 if __name__ == "__main__":
     unittest.main()

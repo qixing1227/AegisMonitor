@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: aegis-monitor-backend
+  config:
+    import: optional:file:./application-local.yml
+  sql:
+    init:
+      mode: never
+
+aegis:
+  agent:
+    register-token: ${AEGIS_AGENT_REGISTER_TOKEN:demo-register-token}

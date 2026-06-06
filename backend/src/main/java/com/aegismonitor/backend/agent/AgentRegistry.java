@@ -1,18 +1,23 @@
 package com.aegismonitor.backend.agent;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 public final class AgentRegistry {
     private final String registerToken;
-    private final Map<String, RegisteredAgent> agents = new HashMap<>();
+    private final AgentRepository repository;
     private int nextHostNumber = 1;
     private int nextAgentNumber = 1;
 
     public AgentRegistry(String registerToken) {
+        this(registerToken, new InMemoryAgentRepository());
+    }
+
+    public AgentRegistry(String registerToken, AgentRepository repository) {
         this.registerToken = registerToken;
+        this.repository = repository;
     }
 
     public AgentRegistrationResult register(String token, AgentRegistrationRequest request) {
@@ -23,65 +28,83 @@ public final class AgentRegistry {
         String hostId = formatId("host", nextHostNumber++);
         String agentId = formatId("agt", nextAgentNumber++);
         String agentSecret = UUID.randomUUID().toString();
-        agents.put(agentId, new RegisteredAgent(agentId, hostId, agentSecret, "ONLINE", null));
+        repository.save(
+            new AgentRecord(
+                agentId,
+                hostId,
+                agentSecret,
+                request.hostname(),
+                request.alias(),
+                request.ipAddress(),
+                request.osName(),
+                request.osVersion(),
+                request.cpuCores(),
+                request.memoryTotalBytes(),
+                request.bootTime(),
+                request.agentVersion(),
+                "ONLINE",
+                null,
+                OffsetDateTime.now().toString()
+            )
+        );
         return new AgentRegistrationResult(agentId, hostId, agentSecret);
     }
 
     public void heartbeat(AgentHeartbeatRequest request) {
-        RegisteredAgent agent = agents.get(request.agentId());
-        if (agent == null) {
-            throw new IllegalArgumentException("Agent does not exist");
-        }
-        if (!Objects.equals(agent.hostId, request.hostId())) {
+        AgentRecord agent = repository
+            .findByAgentId(request.agentId())
+            .orElseThrow(() -> new IllegalArgumentException("Agent does not exist"));
+        if (!Objects.equals(agent.hostId(), request.hostId())) {
             throw new IllegalArgumentException("Agent host does not match");
         }
-        if (!Objects.equals(agent.agentSecret, request.agentSecret())) {
+        if (!Objects.equals(agent.agentSecret(), request.agentSecret())) {
             throw new IllegalArgumentException("Agent secret is invalid");
         }
 
-        agents.put(
+        repository.updateHeartbeat(
             request.agentId(),
-            new RegisteredAgent(
-                request.agentId(),
-                request.hostId(),
-                request.agentSecret(),
-                request.status(),
-                request.reportedAt()
-            )
+            request.status(),
+            request.reportedAt()
         );
     }
 
     public AgentStatus getAgentStatus(String agentId) {
-        RegisteredAgent agent = agents.get(agentId);
-        if (agent == null) {
-            throw new IllegalArgumentException("Agent does not exist");
-        }
-        return new AgentStatus(agent.agentId, agent.hostId, agent.status, agent.lastHeartbeatAt);
+        AgentRecord agent = repository
+            .findByAgentId(agentId)
+            .orElseThrow(() -> new IllegalArgumentException("Agent does not exist"));
+        return new AgentStatus(
+            agent.agentId(),
+            agent.hostId(),
+            agent.status(),
+            agent.lastHeartbeatAt()
+        );
+    }
+
+    public List<AgentSummary> listAgents() {
+        return repository.findAll()
+            .stream()
+            .map(AgentRegistry::toSummary)
+            .toList();
+    }
+
+    private static AgentSummary toSummary(AgentRecord agent) {
+        return new AgentSummary(
+            agent.agentId(),
+            agent.hostId(),
+            agent.hostname(),
+            agent.alias(),
+            agent.ipAddress(),
+            agent.osName(),
+            agent.osVersion(),
+            agent.cpuCores(),
+            agent.memoryTotalBytes(),
+            agent.agentVersion(),
+            agent.status(),
+            agent.lastHeartbeatAt()
+        );
     }
 
     private static String formatId(String prefix, int value) {
         return String.format("%s_%03d", prefix, value);
-    }
-
-    private static final class RegisteredAgent {
-        private final String agentId;
-        private final String hostId;
-        private final String agentSecret;
-        private final String status;
-        private final String lastHeartbeatAt;
-
-        private RegisteredAgent(
-            String agentId,
-            String hostId,
-            String agentSecret,
-            String status,
-            String lastHeartbeatAt
-        ) {
-            this.agentId = agentId;
-            this.hostId = hostId;
-            this.agentSecret = agentSecret;
-            this.status = status;
-            this.lastHeartbeatAt = lastHeartbeatAt;
-        }
     }
 }
