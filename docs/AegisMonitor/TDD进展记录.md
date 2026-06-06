@@ -2,7 +2,7 @@
 
 ## 1. 当前阶段
 
-当前进入 `tdd` 阶段，范围限定为 Sprint 1 最小主链路：
+本文最初从 `tdd` 阶段记录 Sprint 1 最小主链路，起始范围为：
 
 1. Agent 配置读取。
 2. Agent 注册。
@@ -11,11 +11,20 @@
 5. Agent 主机指标上报。
 6. 后端 Agent 注册与心跳领域逻辑。
 
-本阶段遵循垂直切片原则：一个行为测试，最小实现，通过后再进入下一个行为。
+随着后续迭代推进，当前实际项目状态已经进入“课程设计 MVP 已成型，准备团队协作完善和答辩收口”阶段：
+
+| 阶段 | 当前状态 |
+| --- | --- |
+| Sprint 1 主链路打通 | 已完成核心能力：Agent 注册、身份持久化、心跳、指标采集、指标上报、服务发现上报、后端接收与 MySQL 主机记录 |
+| Sprint 2 监控展示 | 已完成核心展示：主机列表、主机详情、服务组件、告警中心、自动刷新、Demo 数据入口 |
+| Sprint 3 告警与权限 | 已完成告警 ACK 闭环；登录、RBAC、用户管理、告警规则编辑暂作为后续扩展 |
+| Sprint 4 测试、演示与答辩准备 | 已开始：自动化测试、README、GitHub Issues、团队协作交接已完成；最终答辩脚本、截图和 PPT 待完善 |
+
+本文仍按 TDD 记录方式保留关键 RED→GREEN 循环。UI 打磨、GitHub 协作、README 和演示交接等工程收口事项，也在末尾以“当前状态校准”和“下一阶段建议”记录。
 
 ## 2. 环境检查
 
-已确认：
+起始阶段已确认：
 
 - 工作区当前从文档阶段进入代码阶段。
 - Python 标准库可用。
@@ -34,6 +43,14 @@
 - Agent 当前 HTTP 上报使用 Python 标准库 `urllib`。
 - Agent 暂未实现真实 `psutil` 指标采集。
 - 后端暂不能运行 Spring Boot/JUnit 测试，因此先用 Java 标准编译器验证核心领域逻辑。
+
+当前环境已经更新：
+
+- JDK 17 已可用。
+- Maven 已可用于后端测试和启动。
+- MySQL 已作为本地运行数据库接入。
+- Agent 已接入真实 `psutil` 指标采集。
+- 前端 Vue 3 + Vite 已可运行、测试和构建。
 
 ## 3. 已完成 RED→GREEN 循环
 
@@ -1042,6 +1059,119 @@
 
 - 已 GREEN。
 
+### 3.45 后端 Demo seed 补齐最新指标快照
+
+行为：
+
+- 执行 `POST /api/demo/seed` 后，模拟主机不仅会写入主机、服务和告警数据，也会同步生成可供前端详情页读取的最新指标快照。
+- 解决演示数据主机进入详情页时缺少 `latest metric` 导致接口 500 的问题。
+- Demo 主机使用固定 `demo_host_*` 和 `demo_agt_*` 标识，便于前端区分演示数据和真实 Agent 主机。
+
+测试：
+
+- `backend/src/test/java/com/aegismonitor/backend/api/DemoSeedApiSpringTest.java`
+
+实现：
+
+- `backend/src/main/java/com/aegismonitor/backend/demo/DemoDataSeeder.java`
+- `backend/src/main/java/com/aegismonitor/backend/BackendConfiguration.java`
+
+验证：
+
+- `backend\test.cmd`：18 项通过。
+- `GET /api/metrics/host/latest?hostId=demo_host_001` 可返回 CPU、内存、TCP 连接数。
+
+结论：
+
+- 已 GREEN。
+
+### 3.46 前端主机详情刷新与错误状态修复
+
+行为：
+
+- 详情页进入 `/hosts/:hostId` 后，会优先保持 URL 指定的主机选中状态。
+- 当新主机指标加载失败时，不再回滚显示上一台主机，避免出现“URL 是真实主机，页面却显示 demo 主机”的错觉。
+- 自动刷新改为 silent refresh，不再每隔几秒切换到 loading 状态，解决页面闪烁问题。
+- 详情页定时刷新时重新拉取主机列表，使 `lastHeartbeatAt` 和指标快照都能随 Agent 上报更新。
+
+测试：
+
+- `frontend/src/dashboard/hostDashboardStore.test.js`
+
+实现：
+
+- `frontend/src/dashboard/hostDashboardStore.js`
+- `frontend/src/dashboard/HomeDashboard.vue`
+- `frontend/src/dashboard/HostDetailPage.vue`
+- `frontend/src/dashboard/ServicesPage.vue`
+- `frontend/src/dashboard/AlertsPage.vue`
+
+验证：
+
+- `cd frontend && npm.cmd test`：17 项通过。
+- `cd frontend && npm.cmd run build`：Vite production build 通过。
+- 浏览器验证 `/hosts/host_001`：真实主机 `qixing617 / local-windows-host` 正常显示，无 500、无 loading 闪烁、无串到 `demo-web-01`。
+
+结论：
+
+- 已 GREEN。
+
+### 3.47 Agent 持续运行模式
+
+行为：
+
+- 在 `run-once` 的基础上新增持续运行模式 `run`。
+- Agent 会按照 `host_metric_interval_seconds` 周期持续执行心跳、主机指标上报和服务发现上报。
+- 新增 Windows 启动脚本 `agent/run.cmd`，便于演示时一键启动持续上报。
+- CLI 对后台运行时的 stdout 写入异常做容错，避免隐藏进程没有控制台时直接退出。
+
+测试：
+
+- `agent/tests/test_runtime.py`
+- `agent/tests/test_cli.py`
+- `agent/tests/test_config.py`
+
+实现：
+
+- `agent/aegis_agent/runtime.py`
+- `agent/aegis_agent/cli.py`
+- `agent/run.cmd`
+- `agent/agent.example.yml`
+
+验证：
+
+- `agent\test.cmd`：18 项通过。
+- 真实运行 Agent 后，后端 `GET /api/metrics/host/latest?hostId=host_001` 的 `reportedAt`、CPU、内存和 TCP 连接数会周期性变化。
+
+结论：
+
+- 已 GREEN。
+
+### 3.48 协作收口与构建稳定性
+
+行为：
+
+- 修复 Vite 在当前带空格的项目目录下 production build 失败的问题。
+- 新增根目录 `README.md`，说明项目定位、启动方式、多真实主机接入方式、团队协作流程和 GitHub collaborator 权限设置。
+- 创建 4 个 GitHub Issues，分别分配多主机接入、前端展示打磨、告警/服务完善、测试与答辩交接。
+- 将项目推进到团队协作完善阶段。
+
+实现：
+
+- `frontend/vite.config.js`
+- `README.md`
+- GitHub Issues：`#1` 到 `#4`
+
+验证：
+
+- `cd frontend && npm.cmd run build`：通过。
+- GitHub `master` 已推送最新提交。
+- 本地工作区提交后保持干净。
+
+结论：
+
+- 已 GREEN。
+
 ## 4. 当前测试命令
 
 Agent 测试：
@@ -1085,16 +1215,32 @@ npm.cmd run build
 | 服务指标 serviceId 映射 | 已收敛为服务清单按 `hostId + stackType + serviceName` upsert，并通过 `service_instances` 表持久化 |
 | 后端领域逻辑需要接入真实 HTTP 层 | 已完成 Agent 注册、心跳、列表查询、主机指标上报、主机最新指标查询、服务发现结果、服务列表查询、告警查询与 ACK 9 条 Spring Boot Controller 竖切片 |
 | Agent 注册信息需要服务端持久化 | 已通过 `AgentRepository` + `JdbcAgentRepository` 接入 `agents` 表 |
-| 答辩现场需要稳定的 Agent 启动方式 | 已完成 `python -m aegis_agent.cli run-once` 和 `agent/run-once.cmd`，可一键执行一次上报链路 |
+| 答辩现场需要稳定的 Agent 启动方式 | 已完成 `run-once` 和持续运行 `run` 两种模式，并提供 `agent/run-once.cmd` 与 `agent/run.cmd` |
 | 示例配置可能和代码解析规则脱节 | 已通过 `agent/tests/test_config.py` 直接加载 `agent/agent.example.yml` |
 | 本地 MySQL 端到端链路可能只停留在单元测试 | 已完成 Spring Boot + MySQL + Agent run-once + HTTP 查询冒烟 |
+| Demo 主机没有最新指标导致详情页 500 | 已在 `DemoDataSeeder` 中同步 seed demo metric snapshot |
+| 前端自动刷新导致页面闪烁 | 已通过 silent refresh 修复，自动刷新不再触发全局 loading 闪烁 |
+| 真实主机详情页可能显示上一台 demo 主机 | 已修复选中状态回滚逻辑，指标加载失败不会回滚 `selectedHostId` |
+| 真实主机心跳字段不随指标刷新 | 已调整详情页刷新逻辑，定时刷新会重新拉主机列表 |
+| 队员接手没有入口说明 | 已补充 `README.md`，并创建 GitHub Issues `#1` 到 `#4` |
 
-## 6. 下一轮 TDD 建议
+## 6. 当前进度校准与下一阶段建议
 
-下一轮不要立刻做完整前端或拓扑。建议继续完成 Sprint 1 到 Sprint 2 的工程落地：
+当前项目不再停留在 Sprint 1。实际状态是：
 
-1. 开始前端前，整理一份后端接口对接清单，降低 Vue 对接返工。
-2. 准备前端 Dashboard 原型，对接主机、主机最新指标、服务、告警接口。
-3. 给后端补一个演示数据重置或模拟主机入口，方便答辩现场展示 5 台主机。
-4. 再进入指标历史曲线前，先决定课程设计阶段是否只展示最新快照，避免过早引入 InfluxDB。
-5. 整理课程设计报告中的测试用例表，把当前自动化测试和真实冒烟映射到验收标准。
+| 阶段 | 完成度判断 | 说明 |
+| --- | --- | --- |
+| Sprint 1 主链路打通 | 高 | Agent、后端、MySQL、真实上报链路已可运行 |
+| Sprint 2 监控展示 | 高 | 前端主机、详情、服务、告警、自动刷新已完成 |
+| Sprint 3 告警与权限 | 中 | 告警 ACK 已完成；登录、RBAC、用户管理和规则编辑暂缓 |
+| Sprint 4 测试、演示与答辩 | 中 | 自动化测试、README、Issues 已完成；最终截图、脚本、PPT、报告待收口 |
+
+下一阶段建议进入“团队协作完善与答辩收口”，而不是继续补 Sprint 1：
+
+1. 队员 1 完成多真实主机接入，验证至少 1 台非主开发电脑作为真实 Agent 主机上线。
+2. 队员 2 完成前端展示打磨，明确区分真实主机和演示主机。
+3. 队员 3 完善服务组件与告警中心展示，突出告警 ACK 运维闭环。
+4. 队员 4 整理最终答辩演示脚本、测试记录、验收截图和五人分工。
+5. 组长负责 review PR、合并分支、控制 `master` 稳定性，并准备最终报告和 PPT。
+
+暂不建议在当前阶段扩展完整登录、RBAC、历史曲线、服务拓扑、企业微信/邮件通知或云服务器部署。这些可以作为设计文档中的后续扩展，避免影响课程设计主链路稳定性。
