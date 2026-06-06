@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import time
 
 from aegis_agent.config import AgentConfig
 from aegis_agent.heartbeat import HeartbeatReporter
@@ -42,5 +43,25 @@ class AgentRuntime:
         if self._service_discovery_collector is not None:
             service_snapshot = self._service_discovery_collector.collect(reported_at)
             ServiceDiscoveryReporter(self._config).report(identity, service_snapshot)
+
+        return identity
+
+    def run_forever(
+        self,
+        reported_at_provider: Callable[[], str],
+        sleeper: Callable[[int], None] = time.sleep,
+        max_iterations: int | None = None,
+    ) -> AgentIdentity | None:
+        identity = None
+        iterations = 0
+
+        while max_iterations is None or iterations < max_iterations:
+            identity = self.run_once(reported_at_provider())
+            iterations += 1
+
+            if max_iterations is not None and iterations >= max_iterations:
+                break
+
+            sleeper(self._config.host_metric_interval_seconds)
 
         return identity

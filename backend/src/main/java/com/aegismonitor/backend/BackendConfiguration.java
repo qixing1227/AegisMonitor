@@ -36,9 +36,15 @@ public class BackendConfiguration {
     DemoDataSeeder demoDataSeeder(
         AgentRepository agentRepository,
         ServiceInventory serviceInventory,
-        AlertRepository alertRepository
+        AlertRepository alertRepository,
+        HostMetricIngestionService hostMetricIngestionService
     ) {
-        return new DemoDataSeeder(agentRepository, serviceInventory, alertRepository);
+        return new DemoDataSeeder(
+            agentRepository,
+            serviceInventory,
+            alertRepository,
+            hostMetricIngestionService
+        );
     }
 
     @Bean

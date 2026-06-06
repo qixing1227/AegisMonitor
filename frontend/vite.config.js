@@ -3,6 +3,11 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  build: {
+    rollupOptions: {
+      input: 'index.html'
+    }
+  },
   server: {
     port: 5173,
     proxy: {

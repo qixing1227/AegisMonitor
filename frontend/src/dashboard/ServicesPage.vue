@@ -16,7 +16,7 @@ import { createRefreshLoop } from './refreshLoop.js'
 
 const refreshLoop = createRefreshLoop({
   intervalMs: 10000,
-  refresh: refreshServices
+  refresh: () => refreshServices({ silent: true })
 })
 
 onMounted(() => {
@@ -34,14 +34,14 @@ async function selectHost(hostId) {
   await store.selectHost(hostId)
 }
 
-async function refreshServices() {
+async function refreshServices(options = {}) {
   if (store.hosts.value.length === 0) {
-    await store.loadHosts()
+    await store.loadHosts(options)
     return
   }
 
   const hostId = store.selectedHostId.value || store.hosts.value[0]?.id || ''
-  await store.selectHost(hostId)
+  await store.selectHost(hostId, options)
 }
 </script>
 

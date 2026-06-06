@@ -409,7 +409,7 @@ test('dashboard updates an alert after acknowledgement', async () => {
   assert.equal(store.alerts.value[0].acknowledgedBy, 'ops01')
 })
 
-test('dashboard keeps the previous host snapshot when refresh fails', async () => {
+test('dashboard keeps the requested host selected when its metric snapshot fails', async () => {
   const store = createHostDashboardStore({
     api: {
       async listHosts() {
@@ -461,14 +461,9 @@ test('dashboard keeps the previous host snapshot when refresh fails', async () =
   await store.selectHost('host_002')
 
   assert.equal(store.error.value, 'metric backend down')
-  assert.equal(store.selectedHostId.value, 'host_001')
-  assert.deepEqual(store.latestMetric.value, {
-    hostId: 'host_001',
-    reportedAt: '2026-06-06T11:05:00+08:00',
-    cpuUsagePercent: 37.2,
-    memoryUsagePercent: 54.4,
-    tcpConnectionCount: 72
-  })
+  assert.equal(store.selectedHostId.value, 'host_002')
+  assert.equal(store.selectedHost.value.hostname, 'DESKTOP-OPS')
+  assert.equal(store.latestMetric.value, null)
 })
 
 test('dashboard can initialize demo data and refresh showcase panels', async () => {

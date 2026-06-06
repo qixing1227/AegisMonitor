@@ -30,7 +30,7 @@ const acknowledgedAlertCount = computed(() =>
 
 const refreshLoop = createRefreshLoop({
   intervalMs: 10000,
-  refresh: () => store.loadAlerts()
+  refresh: () => store.loadAlerts({ silent: true })
 })
 
 onMounted(() => {

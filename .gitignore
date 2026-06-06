@@ -1,10 +1,12 @@
 # Python
 __pycache__/
 *.py[cod]
+agent/build/
 
 # Java
 backend/build/
 target/
+.vs/
 
 # Frontend
 frontend/node_modules/

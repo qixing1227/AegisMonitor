@@ -26,7 +26,7 @@ const props = defineProps({
 
 const refreshLoop = createRefreshLoop({
   intervalMs: 5000,
-  refresh: loadDetail
+  refresh: () => loadDetail({ silent: true })
 })
 
 onMounted(() => {
@@ -45,12 +45,8 @@ watch(
   }
 )
 
-async function loadDetail() {
-  if (store.hosts.value.length === 0) {
-    await store.loadHosts({ preferredHostId: props.hostId })
-    return
-  }
-  await store.selectHost(props.hostId)
+async function loadDetail(options = {}) {
+  await store.loadHosts({ preferredHostId: props.hostId, ...options })
 }
 
 function formatMemory(host) {

@@ -52,6 +52,18 @@ class DemoSeedApiSpringTest {
     }
 
     @Test
+    void seedsDemoMetricSnapshotsForFrontendDashboard() throws Exception {
+        seedDemoData();
+
+        mockMvc.perform(get("/api/metrics/host/latest").queryParam("hostId", "demo_host_001"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.hostId").value("demo_host_001"))
+            .andExpect(jsonPath("$.data.cpuUsagePercent").value(36.8))
+            .andExpect(jsonPath("$.data.memoryUsagePercent").value(52.4))
+            .andExpect(jsonPath("$.data.tcpConnectionCount").value(48));
+    }
+
+    @Test
     void seedsDemoAlertsForFrontendAckFlow() throws Exception {
         seedDemoData();
         seedDemoData();

@@ -22,7 +22,7 @@ const showDemoSeed = import.meta.env.DEV || import.meta.env.VITE_AEGIS_DEMO === 
 const openAlertCount = computed(() => store.alerts.value.filter((alert) => alert.open).length)
 const refreshLoop = createRefreshLoop({
   intervalMs: 5000,
-  refresh: refreshDashboard
+  refresh: () => refreshDashboard({ silent: true })
 })
 
 onMounted(() => {
@@ -42,9 +42,9 @@ function formatPercent(value) {
   return typeof value === 'number' ? `${value.toFixed(1)}%` : '--'
 }
 
-async function refreshDashboard() {
-  await store.loadHosts()
-  await store.loadAlerts()
+async function refreshDashboard(options = {}) {
+  await store.loadHosts(options)
+  await store.loadAlerts(options)
 }
 
 async function initializeDemoData() {

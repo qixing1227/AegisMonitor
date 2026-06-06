@@ -271,6 +271,77 @@ class AgentRuntimeTest(unittest.TestCase):
                 "SPRING_BOOT",
             )
 
+    def test_run_forever_reports_repeatedly_on_configured_interval(self):
+        RuntimeHandler.requests = []
+        server = HTTPServer(("127.0.0.1", 0), RuntimeHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join, 1)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            config = AgentConfig(
+                server_url=f"http://127.0.0.1:{server.server_port}/api",
+                register_token="demo-register-token",
+                host_alias="demo-host-a",
+                host_metric_interval_seconds=5,
+                heartbeat_interval_seconds=10,
+                service_discovery_interval_seconds=30,
+                state_file=Path(tmp) / ".agent-state.json",
+            )
+            reported_times = iter(
+                [
+                    "2026-06-04T17:40:00+08:00",
+                    "2026-06-04T17:40:05+08:00",
+                ]
+            )
+            sleep_intervals = []
+
+            identity = AgentRuntime(
+                config=config,
+                state_store=AgentStateStore(config.state_file),
+                host_snapshot_provider=lambda: HostSnapshot(
+                    hostname="DESKTOP-QIXING",
+                    ip_address="192.168.1.10",
+                    os_name="Windows 11",
+                    os_version="10.0.22631",
+                    cpu_cores=8,
+                    memory_total_bytes=17179869184,
+                    boot_time="2026-06-04T09:00:00+08:00",
+                    agent_version="0.1.0",
+                ),
+                metric_collector=FakeMetricCollector(),
+            ).run_forever(
+                reported_at_provider=lambda: next(reported_times),
+                sleeper=lambda seconds: sleep_intervals.append(seconds),
+                max_iterations=2,
+            )
+
+            self.assertEqual(
+                identity,
+                AgentIdentity("agt_001", "host_001", "generated-agent-secret"),
+            )
+            self.assertEqual(sleep_intervals, [5])
+            self.assertEqual(
+                [request["path"] for request in RuntimeHandler.requests],
+                [
+                    "/api/agents/register",
+                    "/api/agents/heartbeat",
+                    "/api/metrics/host",
+                    "/api/agents/heartbeat",
+                    "/api/metrics/host",
+                ],
+            )
+            self.assertEqual(
+                RuntimeHandler.requests[2]["body"]["reportedAt"],
+                "2026-06-04T17:40:00+08:00",
+            )
+            self.assertEqual(
+                RuntimeHandler.requests[4]["body"]["reportedAt"],
+                "2026-06-04T17:40:05+08:00",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

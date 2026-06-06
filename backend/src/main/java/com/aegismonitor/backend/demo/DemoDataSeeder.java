@@ -4,6 +4,11 @@ import com.aegismonitor.backend.agent.AgentRecord;
 import com.aegismonitor.backend.agent.AgentRepository;
 import com.aegismonitor.backend.alerts.AlertEvent;
 import com.aegismonitor.backend.alerts.AlertRepository;
+import com.aegismonitor.backend.metrics.CpuSample;
+import com.aegismonitor.backend.metrics.HostMetricIngestionService;
+import com.aegismonitor.backend.metrics.HostMetricReport;
+import com.aegismonitor.backend.metrics.MemorySample;
+import com.aegismonitor.backend.metrics.TcpSample;
 import com.aegismonitor.backend.services.DiscoveredServiceReport;
 import com.aegismonitor.backend.services.ServiceDiscoveryReport;
 import com.aegismonitor.backend.services.ServiceInventory;
@@ -13,15 +18,18 @@ public final class DemoDataSeeder {
     private final AgentRepository agentRepository;
     private final ServiceInventory serviceInventory;
     private final AlertRepository alertRepository;
+    private final HostMetricIngestionService hostMetricIngestionService;
 
     public DemoDataSeeder(
         AgentRepository agentRepository,
         ServiceInventory serviceInventory,
-        AlertRepository alertRepository
+        AlertRepository alertRepository,
+        HostMetricIngestionService hostMetricIngestionService
     ) {
         this.agentRepository = agentRepository;
         this.serviceInventory = serviceInventory;
         this.alertRepository = alertRepository;
+        this.hostMetricIngestionService = hostMetricIngestionService;
     }
 
     public DemoSeedResult seed(
@@ -37,6 +45,7 @@ public final class DemoDataSeeder {
             if (agentRepository.findByAgentId(host.agentId()).isEmpty()) {
                 agentRepository.save(host);
             }
+            hostMetricIngestionService.ingest(demoMetric(host));
         }
 
         int servicesCreated = includeServices ? seedServices(demoHosts) : 0;
@@ -98,6 +107,37 @@ public final class DemoDataSeeder {
                 "2026-06-04T17:30:00+08:00",
                 "2026-06-04T10:00:03+08:00"
             )
+        );
+    }
+
+    private static HostMetricReport demoMetric(AgentRecord host) {
+        if ("demo_host_001".equals(host.hostId())) {
+            return new HostMetricReport(
+                host.agentId(),
+                host.hostId(),
+                "2026-06-04T17:30:00+08:00",
+                new CpuSample(36.8),
+                new MemorySample(52.4),
+                new TcpSample(48, List.of(80))
+            );
+        }
+        if ("demo_host_002".equals(host.hostId())) {
+            return new HostMetricReport(
+                host.agentId(),
+                host.hostId(),
+                "2026-06-04T17:30:00+08:00",
+                new CpuSample(64.2),
+                new MemorySample(68.7),
+                new TcpSample(96, List.of(8080, 6379))
+            );
+        }
+        return new HostMetricReport(
+            host.agentId(),
+            host.hostId(),
+            "2026-06-04T17:30:00+08:00",
+            new CpuSample(93.5),
+            new MemorySample(74.9),
+            new TcpSample(142, List.of(3306))
         );
     }
 

@@ -29,51 +29,64 @@ export function createHostDashboardStore(options) {
   const alertsEmpty = computed(() => !loading.value && !error.value && alerts.value.length === 0)
 
   async function loadHosts(options = {}) {
-    loading.value = true
+    const showLoading = options.silent !== true
+    const previousHostId = selectedHostId.value
+    const previousMetric = latestMetric.value
+    const previousServices = services.value
+    if (showLoading) {
+      loading.value = true
+    }
     error.value = ''
     try {
       hosts.value = await api.listHosts()
-      selectedHostId.value = options.preferredHostId ?? hosts.value[0]?.id ?? ''
-      latestMetric.value = selectedHost.value
-        ? await loadLatestMetric(selectedHostId.value)
-        : null
-      services.value = selectedHost.value
-        ? await loadServices(selectedHostId.value)
-        : []
+      selectedHostId.value = options.preferredHostId ?? selectedHostId.value ?? hosts.value[0]?.id ?? ''
+      if (!selectedHostId.value && hosts.value.length > 0) {
+        selectedHostId.value = hosts.value[0].id
+      }
+
+      await refreshSelectedHostData({
+        previousHostId,
+        previousMetric,
+        previousServices
+      })
       lastUpdatedAt.value = formatTime(now())
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : String(caughtError)
     } finally {
-      loading.value = false
+      if (showLoading) {
+        loading.value = false
+      }
     }
   }
 
-  async function selectHost(hostId) {
+  async function selectHost(hostId, options = {}) {
     const previousHostId = selectedHostId.value
     const previousMetric = latestMetric.value
     const previousServices = services.value
-    loading.value = true
+    const showLoading = options.silent !== true
+    if (showLoading) {
+      loading.value = true
+    }
     error.value = ''
     try {
       selectedHostId.value = hostId
-      latestMetric.value = selectedHost.value
-        ? await loadLatestMetric(hostId)
-        : null
-      services.value = selectedHost.value
-        ? await loadServices(hostId)
-        : []
-    } catch (caughtError) {
-      selectedHostId.value = previousHostId
-      latestMetric.value = previousMetric
-      services.value = previousServices
-      error.value = caughtError instanceof Error ? caughtError.message : String(caughtError)
+      await refreshSelectedHostData({
+        previousHostId,
+        previousMetric,
+        previousServices
+      })
     } finally {
-      loading.value = false
+      if (showLoading) {
+        loading.value = false
+      }
     }
   }
 
-  async function loadAlerts() {
-    loading.value = true
+  async function loadAlerts(options = {}) {
+    const showLoading = options.silent !== true
+    if (showLoading) {
+      loading.value = true
+    }
     error.value = ''
     try {
       alerts.value = typeof api.listAlerts === 'function'
@@ -83,7 +96,9 @@ export function createHostDashboardStore(options) {
     } catch (caughtError) {
       error.value = caughtError instanceof Error ? caughtError.message : String(caughtError)
     } finally {
-      loading.value = false
+      if (showLoading) {
+        loading.value = false
+      }
     }
   }
 
@@ -134,6 +149,32 @@ export function createHostDashboardStore(options) {
     return hostId && typeof api.listServices === 'function'
       ? await api.listServices(hostId)
       : []
+  }
+
+  async function refreshSelectedHostData(previousState) {
+    if (selectedHost.value === null) {
+      latestMetric.value = null
+      services.value = []
+      return
+    }
+
+    try {
+      latestMetric.value = await loadLatestMetric(selectedHostId.value)
+    } catch (caughtError) {
+      latestMetric.value = previousState.previousHostId === selectedHostId.value
+        ? previousState.previousMetric
+        : null
+      error.value = caughtError instanceof Error ? caughtError.message : String(caughtError)
+    }
+
+    try {
+      services.value = await loadServices(selectedHostId.value)
+    } catch (caughtError) {
+      services.value = previousState.previousHostId === selectedHostId.value
+        ? previousState.previousServices
+        : []
+      error.value = caughtError instanceof Error ? caughtError.message : String(caughtError)
+    }
   }
 
   return {

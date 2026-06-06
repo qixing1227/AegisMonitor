@@ -1,6 +1,6 @@
 server_url: http://localhost:8080/api
 register_token: demo-register-token
-host_alias: demo-host-a
+host_alias: local-windows-host
 host_metric_interval_seconds: 5
 heartbeat_interval_seconds: 10
 service_discovery_interval_seconds: 30
