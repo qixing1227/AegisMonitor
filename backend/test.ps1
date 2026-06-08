@@ -11,9 +11,19 @@ $env:TMP = $tempRoot
 if (Test-Path -LiteralPath $pom) {
     $maven = (Get-Command mvn -ErrorAction SilentlyContinue)
     if ($null -eq $maven) {
-        $localMaven = "C:\Users\QiXing\dev-tools\apache-maven-3.9.16\bin\mvn.cmd"
-        if (-not (Test-Path -LiteralPath $localMaven)) {
-            throw "Maven was not found on PATH."
+        $candidateMavens = @(
+            $(if ($env:MAVEN_HOME) { Join-Path $env:MAVEN_HOME 'bin\mvn.cmd' } else { $null }),
+            'C:\Users\FIERY\dev-tools\apache-maven-3.9.9\bin\mvn.cmd',
+            'C:\Users\FIERY\dev-tools\apache-maven-3.9.16\bin\mvn.cmd',
+            'C:\Users\QiXing\dev-tools\apache-maven-3.9.16\bin\mvn.cmd'
+        )
+
+        $localMaven = $candidateMavens |
+            Where-Object { $_ -and (Test-Path -LiteralPath $_) } |
+            Select-Object -First 1
+
+        if (-not $localMaven) {
+            throw "Maven was not found on PATH and no known Maven installation was found."
         }
         $mavenCommand = $localMaven
     } else {
