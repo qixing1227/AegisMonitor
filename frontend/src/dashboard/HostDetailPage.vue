@@ -122,6 +122,12 @@ function formatPercent(value) {
             <h2>{{ store.selectedHost.value?.alias || store.selectedHost.value?.id || '--' }}</h2>
             <div class="detail-facts">
               <span>IP：{{ store.selectedHost.value?.ipAddress || '--' }}</span>
+              <span>
+                类型：
+                <b :class="store.selectedHost.value?.kind === 'demo' ? 'host-kind-text--demo' : 'host-kind-text--real'">
+                  {{ store.selectedHost.value?.kind === 'demo' ? '模拟主机' : '真实主机' }}
+                </b>
+              </span>
               <span>系统：{{ store.selectedHost.value?.os || '--' }}</span>
               <span>规格：{{ store.selectedHost.value?.cpuCores ?? '--' }}C / {{ formatMemory(store.selectedHost.value) }}</span>
               <span>最近心跳：{{ store.selectedHost.value?.lastHeartbeatAt || '--' }}</span>
