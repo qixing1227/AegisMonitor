@@ -124,9 +124,9 @@ function formatPercent(value) {
               <span>IP：{{ store.selectedHost.value?.ipAddress || '--' }}</span>
               <span>
                 类型：
-                <b :class="store.selectedHost.value?.kind === 'demo' ? 'host-kind-text--demo' : 'host-kind-text--real'">
-                  {{ store.selectedHost.value?.kind === 'demo' ? '模拟主机' : '真实主机' }}
-                </b>
+                <b v-if="store.selectedHost.value?.kind === 'demo'" class="host-kind-text--demo">模拟主机</b>
+                <b v-else-if="store.selectedHost.value?.kind === 'real'" class="host-kind-text--real">真实主机</b>
+                <b v-else>--</b>
               </span>
               <span>系统：{{ store.selectedHost.value?.os || '--' }}</span>
               <span>规格：{{ store.selectedHost.value?.cpuCores ?? '--' }}C / {{ formatMemory(store.selectedHost.value) }}</span>
