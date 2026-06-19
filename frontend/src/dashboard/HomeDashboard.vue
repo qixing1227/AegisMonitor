@@ -199,8 +199,11 @@ async function initializeDemoData() {
             <span>{{ host.ipAddress }}</span>
             <span>{{ host.os || '--' }}</span>
             <span>{{ host.cpuCores }}C / {{ formatMemory(host) }}</span>
-            <span class="host-kind" :class="host.kind === 'demo' ? 'kind-模拟' : 'kind-真实'">
-              {{ host.kind === 'demo' ? '模拟' : '真实' }}
+            <span
+                class="host-kind"
+                :class="host.kind === 'demo' ? 'host-kind--demo' : 'host-kind--real'"
+            >
+              {{ host.kind === 'demo' ? '模拟主机' : '真实主机' }}
             </span>
             <span class="status-dot" :class="`status-${host.status}`">{{ host.status }}</span>
             <span class="heartbeat-cell">
