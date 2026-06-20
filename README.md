@@ -138,12 +138,12 @@ agent\run.cmd --config agent\agent.yml
 
 请队员从最新 `master` 拉代码后，认领自己的 Issue，并创建 feature 分支开发。
 
-| 队员 | Issue | 目标 |
-| --- | --- | --- |
-| 队员 1 | [#1 TEAM-01 多真实主机接入与局域网演示部署交接](https://github.com/qixing1227/AegisMonitor/issues/1) | 接入其他真实电脑，整理部署交接文档 |
-| 队员 2 | [#2 TEAM-02 前端展示打磨：区分真实主机与模拟主机](https://github.com/qixing1227/AegisMonitor/issues/2) | 优化主机列表和详情页展示 |
-| 队员 3 | [#3 TEAM-03 告警中心与服务组件展示完善](https://github.com/qixing1227/AegisMonitor/issues/3) | 完善告警 ACK 和服务组件展示 |
-| 队员 4 | [#4 TEAM-04 测试、演示脚本与答辩交接包](https://github.com/qixing1227/AegisMonitor/issues/4) | 整理测试记录、截图和答辩脚本 |
+| 队员 | Issue | 目标 | 状态 |
+| --- | --- | --- | --- |
+| 队员 1 | [#1 TEAM-01 多真实主机接入与局域网演示部署交接](https://github.com/qixing1227/AegisMonitor/issues/1) | 接入其他真实电脑，整理部署交接文档 | 已完成 |
+| 队员 2 | [#2 TEAM-02 前端展示打磨：区分真实主机与模拟主机](https://github.com/qixing1227/AegisMonitor/issues/2) | 优化主机列表和详情页展示 | 已完成 |
+| 队员 3 | [#3 TEAM-03 告警中心与服务组件展示完善](https://github.com/qixing1227/AegisMonitor/issues/3) | 完善告警 ACK 和服务组件展示 | 已完成 |
+| 队员 4 | [#4 TEAM-04 测试、演示脚本与答辩交接包](https://github.com/qixing1227/AegisMonitor/issues/4) | 整理测试记录、截图和答辩脚本 | 进行中 |
 
 ## 新成员阅读顺序
 
