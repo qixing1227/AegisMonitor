@@ -1,15 +1,23 @@
 package com.aegismonitor.backend.metrics;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class HostMetricIngestionService {
-    private final Map<String, HostMetricPoint> latestMetricPoints = new HashMap<>();
-    private final Map<String, HostRuntimeSnapshot> latestRuntimeSnapshots = new HashMap<>();
+    private final HostMetricRepository metricRepository;
+    private final Map<String, HostRuntimeSnapshot> latestRuntimeSnapshots = new ConcurrentHashMap<>();
+
+    public HostMetricIngestionService() {
+        this(new InMemoryHostMetricRepository());
+    }
+
+    public HostMetricIngestionService(HostMetricRepository metricRepository) {
+        this.metricRepository = metricRepository;
+    }
 
     public void ingest(HostMetricReport report) {
-        latestMetricPoints.put(
-            report.hostId(),
+        metricRepository.save(
             new HostMetricPoint(
                 report.hostId(),
                 report.reportedAt(),
@@ -30,11 +38,13 @@ public final class HostMetricIngestionService {
     }
 
     public HostMetricPoint latestMetricPoint(String hostId) {
-        HostMetricPoint point = latestMetricPoints.get(hostId);
-        if (point == null) {
-            throw new IllegalArgumentException("No metric point found for host " + hostId);
-        }
-        return point;
+        return metricRepository
+            .findLatest(hostId)
+            .orElseThrow(() -> new IllegalArgumentException("No metric point found for host " + hostId));
+    }
+
+    public List<HostMetricPoint> metricHistory(String hostId, MetricHistoryRange range) {
+        return metricRepository.findHistory(hostId, range.windowMillis(), range.maxPoints());
     }
 
     public HostRuntimeSnapshot latestRuntimeSnapshot(String hostId) {

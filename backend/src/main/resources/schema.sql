@@ -31,6 +31,17 @@ CREATE TABLE IF NOT EXISTS alert_events (
     ack_note VARCHAR(512)
 );
 
+CREATE TABLE IF NOT EXISTS host_metric_points (
+    host_id VARCHAR(64) NOT NULL,
+    reported_at VARCHAR(64) NOT NULL,
+    reported_at_epoch_ms BIGINT NOT NULL,
+    cpu_usage_percent DOUBLE NOT NULL,
+    memory_usage_percent DOUBLE NOT NULL,
+    tcp_connection_count INT NOT NULL,
+    PRIMARY KEY (host_id, reported_at_epoch_ms),
+    INDEX idx_host_metric_points_host_time (host_id, reported_at_epoch_ms)
+);
+
 CREATE TABLE IF NOT EXISTS service_instances (
     host_id VARCHAR(64) NOT NULL,
     service_name VARCHAR(128) NOT NULL,

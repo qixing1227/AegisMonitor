@@ -144,6 +144,41 @@ class HostMetricApiSpringTest {
             .andExpect(jsonPath("$.data.tcpConnectionCount").value(144));
     }
 
+    @Test
+    void returnsOrderedHostMetricHistoryForSelectedRange() throws Exception {
+        JsonNode identity = registerAgent();
+
+        reportHostMetrics(identity, "2026-06-04T17:00:00+08:00", 25.0, 45.0, 80);
+        reportHostMetrics(identity, "2026-06-04T17:25:00+08:00", 42.5, 52.0, 96);
+        reportHostMetrics(identity, "2026-06-04T17:30:00+08:00", 67.2, 58.5, 144);
+
+        mockMvc.perform(
+                get("/api/metrics/host/history")
+                    .queryParam("hostId", "host_001")
+                    .queryParam("range", "10m")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.message").value("host metric history"))
+            .andExpect(jsonPath("$.data.hostId").value("host_001"))
+            .andExpect(jsonPath("$.data.range").value("10m"))
+            .andExpect(jsonPath("$.data.points.length()").value(2))
+            .andExpect(jsonPath("$.data.points[0].reportedAt").value("2026-06-04T17:25:00+08:00"))
+            .andExpect(jsonPath("$.data.points[0].cpuUsagePercent").value(42.5))
+            .andExpect(jsonPath("$.data.points[1].reportedAt").value("2026-06-04T17:30:00+08:00"))
+            .andExpect(jsonPath("$.data.points[1].tcpConnectionCount").value(144));
+    }
+
+    @Test
+    void rejectsUnsupportedHostMetricHistoryRange() throws Exception {
+        mockMvc.perform(
+                get("/api/metrics/host/history")
+                    .queryParam("hostId", "host_001")
+                    .queryParam("range", "7d")
+            )
+            .andExpect(status().isBadRequest());
+    }
+
     private JsonNode registerAgent() throws Exception {
         MvcResult registration = mockMvc.perform(
                 post("/api/agents/register")

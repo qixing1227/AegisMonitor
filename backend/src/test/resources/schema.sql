@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS alert_events;
 DROP TABLE IF EXISTS service_instances;
+DROP TABLE IF EXISTS host_metric_points;
 DROP TABLE IF EXISTS agents;
 
 CREATE TABLE agents (
@@ -34,6 +35,19 @@ CREATE TABLE alert_events (
     acknowledged_at VARCHAR(64),
     ack_note VARCHAR(512)
 );
+
+CREATE TABLE host_metric_points (
+    host_id VARCHAR(64) NOT NULL,
+    reported_at VARCHAR(64) NOT NULL,
+    reported_at_epoch_ms BIGINT NOT NULL,
+    cpu_usage_percent DOUBLE NOT NULL,
+    memory_usage_percent DOUBLE NOT NULL,
+    tcp_connection_count INT NOT NULL,
+    PRIMARY KEY (host_id, reported_at_epoch_ms)
+);
+
+CREATE INDEX idx_host_metric_points_host_time
+    ON host_metric_points (host_id, reported_at_epoch_ms);
 
 CREATE TABLE service_instances (
     host_id VARCHAR(64) NOT NULL,

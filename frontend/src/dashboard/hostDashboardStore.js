@@ -6,6 +6,10 @@ export function createHostDashboardStore(options) {
   const hosts = ref([])
   const selectedHostId = ref('')
   const latestMetric = ref(null)
+  const metricHistory = ref([])
+  const metricHistoryRange = ref('10m')
+  const historyLoading = ref(false)
+  const historyError = ref('')
   const services = ref([])
   const alerts = ref([])
   const demoSeedResult = ref(null)
@@ -32,6 +36,7 @@ export function createHostDashboardStore(options) {
     const showLoading = options.silent !== true
     const previousHostId = selectedHostId.value
     const previousMetric = latestMetric.value
+    const previousHistory = metricHistory.value
     const previousServices = services.value
     if (showLoading) {
       loading.value = true
@@ -47,6 +52,7 @@ export function createHostDashboardStore(options) {
       await refreshSelectedHostData({
         previousHostId,
         previousMetric,
+        previousHistory,
         previousServices
       })
       lastUpdatedAt.value = formatTime(now())
@@ -62,6 +68,7 @@ export function createHostDashboardStore(options) {
   async function selectHost(hostId, options = {}) {
     const previousHostId = selectedHostId.value
     const previousMetric = latestMetric.value
+    const previousHistory = metricHistory.value
     const previousServices = services.value
     const showLoading = options.silent !== true
     if (showLoading) {
@@ -73,6 +80,7 @@ export function createHostDashboardStore(options) {
       await refreshSelectedHostData({
         previousHostId,
         previousMetric,
+        previousHistory,
         previousServices
       })
     } finally {
@@ -145,6 +153,38 @@ export function createHostDashboardStore(options) {
       : null
   }
 
+  async function loadMetricHistory(hostId) {
+    if (!hostId || typeof api.getHostMetricHistory !== 'function') {
+      return []
+    }
+    const result = await api.getHostMetricHistory(hostId, metricHistoryRange.value)
+    return result.points
+  }
+
+  async function setMetricHistoryRange(range) {
+    if (!['10m', '30m', '1h'].includes(range)) {
+      throw new Error(`Unsupported metric history range: ${range}`)
+    }
+
+    metricHistoryRange.value = range
+    if (selectedHost.value === null) {
+      metricHistory.value = []
+      return
+    }
+
+    const previousHistory = metricHistory.value
+    historyLoading.value = true
+    historyError.value = ''
+    try {
+      metricHistory.value = await loadMetricHistory(selectedHostId.value)
+    } catch (caughtError) {
+      metricHistory.value = previousHistory
+      historyError.value = caughtError instanceof Error ? caughtError.message : String(caughtError)
+    } finally {
+      historyLoading.value = false
+    }
+  }
+
   async function loadServices(hostId) {
     return hostId && typeof api.listServices === 'function'
       ? await api.listServices(hostId)
@@ -154,6 +194,8 @@ export function createHostDashboardStore(options) {
   async function refreshSelectedHostData(previousState) {
     if (selectedHost.value === null) {
       latestMetric.value = null
+      metricHistory.value = []
+      historyError.value = ''
       services.value = []
       return
     }
@@ -165,6 +207,16 @@ export function createHostDashboardStore(options) {
         ? previousState.previousMetric
         : null
       error.value = caughtError instanceof Error ? caughtError.message : String(caughtError)
+    }
+
+    try {
+      metricHistory.value = await loadMetricHistory(selectedHostId.value)
+      historyError.value = ''
+    } catch (caughtError) {
+      metricHistory.value = previousState.previousHostId === selectedHostId.value
+        ? previousState.previousHistory ?? []
+        : []
+      historyError.value = caughtError instanceof Error ? caughtError.message : String(caughtError)
     }
 
     try {
@@ -183,6 +235,10 @@ export function createHostDashboardStore(options) {
     selectedHost,
     hostNotFound,
     latestMetric,
+    metricHistory,
+    metricHistoryRange,
+    historyLoading,
+    historyError,
     services,
     alerts,
     demoSeedResult,
@@ -197,7 +253,8 @@ export function createHostDashboardStore(options) {
     selectHost,
     loadAlerts,
     ackAlert,
-    seedDemoData
+    seedDemoData,
+    setMetricHistoryRange
   }
 }
 

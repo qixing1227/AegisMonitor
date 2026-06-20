@@ -7,9 +7,11 @@ import com.aegismonitor.backend.metrics.HostMetricIngestionService;
 import com.aegismonitor.backend.metrics.HostMetricPoint;
 import com.aegismonitor.backend.metrics.HostMetricReport;
 import com.aegismonitor.backend.metrics.MemorySample;
+import com.aegismonitor.backend.metrics.MetricHistoryRange;
 import com.aegismonitor.backend.metrics.TcpSample;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/metrics")
@@ -79,6 +82,30 @@ public class HostMetricController {
         );
     }
 
+    @GetMapping("/host/history")
+    public ApiResponse<HostMetricHistoryHttpResponse> hostMetricHistory(
+        @RequestParam String hostId,
+        @RequestParam(defaultValue = "10m") String range
+    ) {
+        MetricHistoryRange selectedRange;
+        try {
+            selectedRange = MetricHistoryRange.parse(range);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
+        }
+
+        List<HostMetricHistoryPointHttpResponse> points = ingestionService
+            .metricHistory(hostId, selectedRange)
+            .stream()
+            .map(HostMetricHistoryPointHttpResponse::from)
+            .toList();
+
+        return ApiResponse.ok(
+            "host metric history",
+            new HostMetricHistoryHttpResponse(hostId, selectedRange.value(), points)
+        );
+    }
+
     public record HostMetricHttpRequest(
         String agentId,
         String hostId,
@@ -124,5 +151,28 @@ public class HostMetricController {
         double memoryUsagePercent,
         int tcpConnectionCount
     ) {
+    }
+
+    public record HostMetricHistoryHttpResponse(
+        String hostId,
+        String range,
+        List<HostMetricHistoryPointHttpResponse> points
+    ) {
+    }
+
+    public record HostMetricHistoryPointHttpResponse(
+        String reportedAt,
+        double cpuUsagePercent,
+        double memoryUsagePercent,
+        int tcpConnectionCount
+    ) {
+        static HostMetricHistoryPointHttpResponse from(HostMetricPoint point) {
+            return new HostMetricHistoryPointHttpResponse(
+                point.reportedAt(),
+                point.cpuUsagePercent(),
+                point.memoryUsagePercent(),
+                point.tcpConnectionCount()
+            );
+        }
     }
 }

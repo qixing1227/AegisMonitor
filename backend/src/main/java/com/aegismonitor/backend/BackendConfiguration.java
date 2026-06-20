@@ -9,6 +9,8 @@ import com.aegismonitor.backend.alerts.AlertService;
 import com.aegismonitor.backend.alerts.JdbcAlertRepository;
 import com.aegismonitor.backend.demo.DemoDataSeeder;
 import com.aegismonitor.backend.metrics.HostMetricIngestionService;
+import com.aegismonitor.backend.metrics.HostMetricRepository;
+import com.aegismonitor.backend.metrics.JdbcHostMetricRepository;
 import com.aegismonitor.backend.services.JdbcServiceRepository;
 import com.aegismonitor.backend.services.ServiceInventory;
 import com.aegismonitor.backend.services.ServiceRepository;
@@ -48,8 +50,13 @@ public class BackendConfiguration {
     }
 
     @Bean
-    HostMetricIngestionService hostMetricIngestionService() {
-        return new HostMetricIngestionService();
+    HostMetricIngestionService hostMetricIngestionService(HostMetricRepository hostMetricRepository) {
+        return new HostMetricIngestionService(hostMetricRepository);
+    }
+
+    @Bean
+    HostMetricRepository hostMetricRepository(DataSource dataSource) {
+        return new JdbcHostMetricRepository(dataSource);
     }
 
     @Bean

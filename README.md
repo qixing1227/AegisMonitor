@@ -8,7 +8,7 @@ AegisMonitor 是一个面向课程设计的一体化监控平台 MVP。系统通
 
 - 已完成主机注册、心跳、指标上报、服务发现上报。
 - 已完成 Spring Boot 后端、MySQL 持久化、Vue 前端监控页面。
-- 已完成主机列表、主机详情、服务组件、告警中心和 ACK 闭环。
+- 已完成主机列表、主机详情、历史指标曲线、服务组件、告警中心和 ACK 闭环。
 - 已支持本机 Agent 持续上报，也支持局域网内其他电脑作为真实主机接入。
 - 已创建团队协作 Issues，适合队员基于最新 `master` 开分支完善。
 
@@ -19,7 +19,7 @@ AegisMonitor 是一个面向课程设计的一体化监控平台 MVP。系统通
 | Agent | Python |
 | Backend | Java 17, Spring Boot |
 | Database | MySQL |
-| Frontend | Vue 3, Vite |
+| Frontend | Vue 3, Vite, ECharts |
 | Collaboration | GitHub Issues + feature branches |
 
 ## 目录结构

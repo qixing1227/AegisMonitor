@@ -171,6 +171,106 @@ test('ops engineer can select a host and load its detail metric snapshot', async
   })
 })
 
+test('dashboard loads host metric history and changes the selected range', async () => {
+  const historyRequests = []
+  const store = createHostDashboardStore({
+    api: {
+      async listHosts() {
+        return [
+          {
+            id: 'host_001',
+            hostname: 'DESKTOP-AEGIS',
+            alias: '答辩真实主机',
+            ipAddress: '192.168.1.10',
+            os: 'Windows 11',
+            cpuCores: 8,
+            memoryTotalGb: 16,
+            status: 'ONLINE',
+            kind: 'real'
+          }
+        ]
+      },
+      async getLatestHostMetric(hostId) {
+        return {
+          hostId,
+          reportedAt: '2026-06-06T10:35:00+08:00',
+          cpuUsagePercent: 42.6,
+          memoryUsagePercent: 61.2,
+          tcpConnectionCount: 128
+        }
+      },
+      async getHostMetricHistory(hostId, range) {
+        historyRequests.push({ hostId, range })
+        return {
+          hostId,
+          range,
+          points: [
+            {
+              reportedAt: '2026-06-06T10:35:00+08:00',
+              cpuUsagePercent: range === '1h' ? 55.5 : 42.6,
+              memoryUsagePercent: 61.2,
+              tcpConnectionCount: 128
+            }
+          ]
+        }
+      }
+    }
+  })
+
+  await store.loadHosts()
+  await store.setMetricHistoryRange('1h')
+
+  assert.deepEqual(historyRequests, [
+    { hostId: 'host_001', range: '10m' },
+    { hostId: 'host_001', range: '1h' }
+  ])
+  assert.equal(store.metricHistoryRange.value, '1h')
+  assert.equal(store.metricHistory.value[0].cpuUsagePercent, 55.5)
+  assert.equal(store.historyLoading.value, false)
+  assert.equal(store.historyError.value, '')
+})
+
+test('dashboard keeps latest snapshot available when metric history fails', async () => {
+  const store = createHostDashboardStore({
+    api: {
+      async listHosts() {
+        return [
+          {
+            id: 'host_001',
+            hostname: 'DESKTOP-AEGIS',
+            alias: '答辩真实主机',
+            ipAddress: '192.168.1.10',
+            os: 'Windows 11',
+            cpuCores: 8,
+            memoryTotalGb: 16,
+            status: 'ONLINE',
+            kind: 'real'
+          }
+        ]
+      },
+      async getLatestHostMetric(hostId) {
+        return {
+          hostId,
+          reportedAt: '2026-06-06T10:35:00+08:00',
+          cpuUsagePercent: 42.6,
+          memoryUsagePercent: 61.2,
+          tcpConnectionCount: 128
+        }
+      },
+      async getHostMetricHistory() {
+        throw new Error('history backend down')
+      }
+    }
+  })
+
+  await store.loadHosts()
+
+  assert.equal(store.error.value, '')
+  assert.equal(store.historyError.value, 'history backend down')
+  assert.equal(store.latestMetric.value.cpuUsagePercent, 42.6)
+  assert.deepEqual(store.metricHistory.value, [])
+})
+
 test('direct host detail visit exposes not found when host is unknown', async () => {
   const metricRequests = []
   const store = createHostDashboardStore({

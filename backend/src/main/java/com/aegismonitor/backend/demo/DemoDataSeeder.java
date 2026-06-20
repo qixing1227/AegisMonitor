@@ -12,6 +12,7 @@ import com.aegismonitor.backend.metrics.TcpSample;
 import com.aegismonitor.backend.services.DiscoveredServiceReport;
 import com.aegismonitor.backend.services.ServiceDiscoveryReport;
 import com.aegismonitor.backend.services.ServiceInventory;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class DemoDataSeeder {
@@ -45,7 +46,9 @@ public final class DemoDataSeeder {
             if (agentRepository.findByAgentId(host.agentId()).isEmpty()) {
                 agentRepository.save(host);
             }
-            hostMetricIngestionService.ingest(demoMetric(host));
+            for (HostMetricReport metric : demoMetrics(host)) {
+                hostMetricIngestionService.ingest(metric);
+            }
         }
 
         int servicesCreated = includeServices ? seedServices(demoHosts) : 0;
@@ -110,35 +113,48 @@ public final class DemoDataSeeder {
         );
     }
 
-    private static HostMetricReport demoMetric(AgentRecord host) {
-        if ("demo_host_001".equals(host.hostId())) {
-            return new HostMetricReport(
-                host.agentId(),
-                host.hostId(),
-                "2026-06-04T17:30:00+08:00",
-                new CpuSample(36.8),
-                new MemorySample(52.4),
-                new TcpSample(48, List.of(80))
+    private static List<HostMetricReport> demoMetrics(AgentRecord host) {
+        DemoMetricProfile profile = demoMetricProfile(host.hostId());
+        List<HostMetricReport> reports = new ArrayList<>();
+        for (int index = 0; index <= 10; index++) {
+            double progress = index / 10.0;
+            double wave = Math.sin(index * 0.9);
+            double cpu = index == 10
+                ? profile.cpuUsagePercent()
+                : roundOneDecimal(profile.cpuUsagePercent() - 8 + progress * 8 + wave * 3);
+            double memory = index == 10
+                ? profile.memoryUsagePercent()
+                : roundOneDecimal(profile.memoryUsagePercent() - 4 + progress * 4 + wave);
+            int tcpConnections = index == 10
+                ? profile.tcpConnectionCount()
+                : Math.max(0, profile.tcpConnectionCount() - 20 + index * 2 + (int) Math.round(wave * 4));
+
+            reports.add(
+                new HostMetricReport(
+                    host.agentId(),
+                    host.hostId(),
+                    "2026-06-04T17:%02d:00+08:00".formatted(20 + index),
+                    new CpuSample(cpu),
+                    new MemorySample(memory),
+                    new TcpSample(tcpConnections, profile.listeningPorts())
+                )
             );
         }
-        if ("demo_host_002".equals(host.hostId())) {
-            return new HostMetricReport(
-                host.agentId(),
-                host.hostId(),
-                "2026-06-04T17:30:00+08:00",
-                new CpuSample(64.2),
-                new MemorySample(68.7),
-                new TcpSample(96, List.of(8080, 6379))
-            );
+        return List.copyOf(reports);
+    }
+
+    private static DemoMetricProfile demoMetricProfile(String hostId) {
+        if ("demo_host_001".equals(hostId)) {
+            return new DemoMetricProfile(36.8, 52.4, 48, List.of(80));
         }
-        return new HostMetricReport(
-            host.agentId(),
-            host.hostId(),
-            "2026-06-04T17:30:00+08:00",
-            new CpuSample(93.5),
-            new MemorySample(74.9),
-            new TcpSample(142, List.of(3306))
-        );
+        if ("demo_host_002".equals(hostId)) {
+            return new DemoMetricProfile(64.2, 68.7, 96, List.of(8080, 6379));
+        }
+        return new DemoMetricProfile(93.5, 74.9, 142, List.of(3306));
+    }
+
+    private static double roundOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
 
     private int seedServices(List<AgentRecord> demoHosts) {
@@ -234,5 +250,13 @@ public final class DemoDataSeeder {
             alertRepository.save(event);
         }
         return 1;
+    }
+
+    private record DemoMetricProfile(
+        double cpuUsagePercent,
+        double memoryUsagePercent,
+        int tcpConnectionCount,
+        List<Integer> listeningPorts
+    ) {
     }
 }

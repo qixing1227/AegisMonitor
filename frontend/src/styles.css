@@ -373,6 +373,91 @@ a {
   background: #f8fafc;
 }
 
+.metric-history-panel {
+  min-height: 450px;
+}
+
+.metric-history-header {
+  margin-bottom: 14px;
+}
+
+.metric-history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.segmented-control {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(72px, auto);
+  min-width: 0;
+  padding: 3px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.segmented-control button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 6px;
+  color: #475569;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.segmented-control button:hover:not(:disabled) {
+  color: #0f766e;
+  background: #e6fffb;
+}
+
+.segmented-control button.is-active {
+  color: #ffffff;
+  background: #0f766e;
+}
+
+.segmented-control button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.metric-history-chart {
+  width: 100%;
+  height: 320px;
+  min-width: 0;
+}
+
+.metric-history-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 320px;
+  gap: 9px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.metric-history-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #edf2f7;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .service-layout {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
@@ -1728,6 +1813,22 @@ h3 {
   .detail-grid,
   .detail-facts {
     grid-template-columns: 1fr;
+  }
+
+  .metric-history-toolbar,
+  .metric-history-meta {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .segmented-control {
+    grid-auto-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .metric-history-chart,
+  .metric-history-empty {
+    height: 280px;
   }
 
   .service-row {

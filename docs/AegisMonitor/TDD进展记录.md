@@ -1172,6 +1172,36 @@
 
 - 已 GREEN。
 
+### 3.49 主机历史指标与性能趋势图
+
+RED：
+
+- 历史指标没有持久化仓储，服务重启后只能读取内存中的最新快照。
+- 主机详情页预留了趋势区域，但不能查询或展示 CPU、内存和 TCP 历史数据。
+- Demo seed 只有单个最新点，无法稳定演示曲线。
+
+GREEN：
+
+- 新增 `HostMetricRepository`，生产环境使用 `JdbcHostMetricRepository` 写入 MySQL，领域测试保留内存实现。
+- 新增 `host_metric_points` 表，以 `host_id + reported_at_epoch_ms` 保证同一采样点幂等，并支持按主机、时间窗口升序查询。
+- 新增 `GET /api/metrics/host/history`，支持 `10m`、`30m`、`1h` 三个范围，非法范围返回 HTTP 400。
+- Demo seed 为每台模拟主机生成 11 个确定性历史点，重复初始化不会产生重复数据。
+- 主机详情页接入 ECharts，支持 CPU、内存、TCP 指标切换和三档时间范围；历史接口失败时仍保留最新快照。
+- ECharts 组件异步加载，生产构建主入口约 128 KB，图表代码不会阻塞普通列表页首屏。
+
+验证：
+
+- `backend\test.cmd`：21 项通过。
+- `agent\test.cmd`：18 项通过。
+- `cd frontend && npm.cmd test`：20 项通过。
+- `cd frontend && npm.cmd run build`：通过。
+- 本地 MySQL + Spring Boot + 真实 Agent 连续运行：真实主机历史接口返回 11 个采样点，时间随 5 秒采集持续推进。
+- Demo seed：`demo_host_001` 返回 11 个按时间升序排列的历史点。
+
+结论：
+
+- 已 GREEN。
+
 ## 4. 当前测试命令
 
 Agent 测试：
@@ -1199,7 +1229,7 @@ npm.cmd run build
 - 当前后端测试入口会同时运行 Spring Boot MockMvc 测试和纯 Java contract tests。
 - Spring Boot 测试使用 H2 内存库；本地运行应用时可通过被忽略的 `backend/application-local.yml` 接入 MySQL。
 - 后端测试脚本会把临时目录切到 `backend/build/temp`，避免 C 盘临时目录空间不足影响测试。
-- 前端测试当前覆盖 API adapter 和 dashboard store，构建命令用于验证 Vue 页面模板与 Vite 打包。
+- 前端 20 项测试覆盖 API adapter、dashboard store 和自动刷新；构建命令用于验证 Vue 页面模板、ECharts 异步组件与 Vite 打包。
 - 在 Codex 沙盒中 Maven 访问依赖缓存可能需要用户授权；在你的正常 Windows 用户终端里可直接运行。
 
 ## 5. 已验证的 zoom-out 风险
@@ -1223,6 +1253,7 @@ npm.cmd run build
 | 真实主机详情页可能显示上一台 demo 主机 | 已修复选中状态回滚逻辑，指标加载失败不会回滚 `selectedHostId` |
 | 真实主机心跳字段不随指标刷新 | 已调整详情页刷新逻辑，定时刷新会重新拉主机列表 |
 | 队员接手没有入口说明 | 已补充 `README.md`，并创建 GitHub Issues `#1` 到 `#4` |
+| 历史指标只存在最新快照 | 已增加 MySQL 历史表、三档范围查询、Demo 多点数据和 ECharts 趋势图 |
 
 ## 6. 当前进度校准与下一阶段建议
 
@@ -1231,7 +1262,7 @@ npm.cmd run build
 | 阶段 | 完成度判断 | 说明 |
 | --- | --- | --- |
 | Sprint 1 主链路打通 | 高 | Agent、后端、MySQL、真实上报链路已可运行 |
-| Sprint 2 监控展示 | 高 | 前端主机、详情、服务、告警、自动刷新已完成 |
+| Sprint 2 监控展示 | 高 | 前端主机、详情、历史趋势、服务、告警、自动刷新已完成 |
 | Sprint 3 告警与权限 | 中 | 告警 ACK 已完成；登录、RBAC、用户管理和规则编辑暂缓 |
 | Sprint 4 测试、演示与答辩 | 中 | 自动化测试、README、Issues 已完成；最终截图、脚本、PPT、报告待收口 |
 
@@ -1243,4 +1274,4 @@ npm.cmd run build
 4. 队员 4 整理最终答辩演示脚本、测试记录、验收截图和五人分工。
 5. 组长负责 review PR、合并分支、控制 `master` 稳定性，并准备最终报告和 PPT。
 
-暂不建议在当前阶段扩展完整登录、RBAC、历史曲线、服务拓扑、企业微信/邮件通知或云服务器部署。这些可以作为设计文档中的后续扩展，避免影响课程设计主链路稳定性。
+暂不建议在当前阶段扩展完整登录、RBAC、服务拓扑、企业微信/邮件通知或云服务器部署。历史曲线已经进入可运行代码；其后续演进重点是按数据保留周期清理和可选 InfluxDB Repository，而不是再次改动前端接口。

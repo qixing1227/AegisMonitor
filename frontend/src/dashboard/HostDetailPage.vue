@@ -12,10 +12,12 @@ import {
   Signal,
   TriangleAlert
 } from 'lucide-vue-next'
-import { onMounted, onUnmounted, watch } from 'vue'
+import { defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { dashboardStore as store } from './dashboardStore.js'
 import { createRefreshLoop } from './refreshLoop.js'
+
+const HostMetricChart = defineAsyncComponent(() => import('./HostMetricChart.vue'))
 
 const props = defineProps({
   hostId: {
@@ -23,6 +25,18 @@ const props = defineProps({
     required: true
   }
 })
+
+const activeMetric = ref('cpu')
+const metricOptions = [
+  { value: 'cpu', label: 'CPU' },
+  { value: 'memory', label: '内存' },
+  { value: 'tcp', label: 'TCP' }
+]
+const rangeOptions = [
+  { value: '10m', label: '10 分钟' },
+  { value: '30m', label: '30 分钟' },
+  { value: '1h', label: '1 小时' }
+]
 
 const refreshLoop = createRefreshLoop({
   intervalMs: 5000,
@@ -47,6 +61,10 @@ watch(
 
 async function loadDetail(options = {}) {
   await store.loadHosts({ preferredHostId: props.hostId, ...options })
+}
+
+async function selectHistoryRange(range) {
+  await store.setMetricHistoryRange(range)
 }
 
 function formatMemory(host) {
@@ -151,17 +169,61 @@ function formatPercent(value) {
           </article>
         </section>
 
-        <section class="host-panel">
-          <div class="panel-header">
+        <section class="host-panel metric-history-panel">
+          <div class="panel-header metric-history-header">
             <div>
-              <p class="eyebrow">Runtime Snapshot</p>
-              <h2>最新上报快照</h2>
+              <p class="eyebrow">Performance History</p>
+              <h2>主机性能趋势</h2>
             </div>
-            <span>{{ store.latestMetric.value?.reportedAt || '等待 Agent 上报' }}</span>
+            <span>{{ store.metricHistory.value.length }} 个数据点</span>
           </div>
-          <div class="snapshot-note">
+
+          <div class="metric-history-toolbar">
+            <div class="segmented-control" aria-label="趋势指标">
+              <button
+                v-for="option in metricOptions"
+                :key="option.value"
+                type="button"
+                :class="{ 'is-active': activeMetric === option.value }"
+                @click="activeMetric = option.value"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+            <div class="segmented-control" aria-label="时间范围">
+              <button
+                v-for="option in rangeOptions"
+                :key="option.value"
+                type="button"
+                :disabled="store.historyLoading.value"
+                :class="{ 'is-active': store.metricHistoryRange.value === option.value }"
+                @click="selectHistoryRange(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="store.historyError.value" class="status-banner status-banner--warning">
+            历史指标加载失败：{{ store.historyError.value }}
+          </div>
+          <div v-if="store.historyLoading.value && store.metricHistory.value.length === 0" class="metric-history-empty">
+            <RefreshCw class="spin" :size="20" aria-hidden="true" />
+            <span>正在加载历史指标</span>
+          </div>
+          <div v-else-if="store.metricHistory.value.length === 0" class="metric-history-empty">
             <Activity :size="20" aria-hidden="true" />
-            <span>第一版只展示最新快照，历史曲线作为后续扩展。</span>
+            <span>等待 Agent 积累历史指标</span>
+          </div>
+          <HostMetricChart
+            v-else
+            :metric="activeMetric"
+            :points="store.metricHistory.value"
+          />
+
+          <div class="metric-history-meta">
+            <span>最新采样：{{ store.latestMetric.value?.reportedAt || '--' }}</span>
+            <span>自动刷新：5 秒</span>
           </div>
         </section>
       </template>

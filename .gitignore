@@ -21,3 +21,4 @@ agent/agent.yml
 
 # Local runtime state
 .agent-state.json
+/build/

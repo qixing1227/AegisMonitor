@@ -64,6 +64,23 @@ class DemoSeedApiSpringTest {
     }
 
     @Test
+    void seedsIdempotentDemoMetricHistoryForTrendChart() throws Exception {
+        seedDemoData();
+        seedDemoData();
+
+        mockMvc.perform(
+                get("/api/metrics/host/history")
+                    .queryParam("hostId", "demo_host_001")
+                    .queryParam("range", "10m")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.points.length()").value(11))
+            .andExpect(jsonPath("$.data.points[0].reportedAt").value("2026-06-04T17:20:00+08:00"))
+            .andExpect(jsonPath("$.data.points[10].reportedAt").value("2026-06-04T17:30:00+08:00"))
+            .andExpect(jsonPath("$.data.points[10].cpuUsagePercent").value(36.8));
+    }
+
+    @Test
     void seedsDemoAlertsForFrontendAckFlow() throws Exception {
         seedDemoData();
         seedDemoData();

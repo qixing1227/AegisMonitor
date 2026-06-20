@@ -16,6 +16,13 @@ export function createAegisApi(options = {}) {
       )
       return toLatestMetric(data)
     },
+    async getHostMetricHistory(hostId, range = '10m') {
+      const data = await request(
+        fetcher,
+        `/api/metrics/host/history?hostId=${encodeURIComponent(hostId)}&range=${encodeURIComponent(range)}`
+      )
+      return toMetricHistory(data)
+    },
     async listServices(hostId) {
       const data = await request(
         fetcher,
@@ -96,6 +103,20 @@ function toLatestMetric(metric) {
     cpuUsagePercent: Number(metric.cpuUsagePercent ?? 0),
     memoryUsagePercent: Number(metric.memoryUsagePercent ?? 0),
     tcpConnectionCount: Number(metric.tcpConnectionCount ?? 0)
+  }
+}
+
+function toMetricHistory(history) {
+  const points = Array.isArray(history?.points) ? history.points : []
+  return {
+    hostId: history?.hostId ?? '',
+    range: history?.range ?? '10m',
+    points: points.map((point) => ({
+      reportedAt: point.reportedAt ?? '',
+      cpuUsagePercent: Number(point.cpuUsagePercent ?? 0),
+      memoryUsagePercent: Number(point.memoryUsagePercent ?? 0),
+      tcpConnectionCount: Number(point.tcpConnectionCount ?? 0)
+    }))
   }
 }
 

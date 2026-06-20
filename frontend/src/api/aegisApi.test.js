@@ -85,6 +85,60 @@ test('ops engineer can load latest metric snapshot for a selected host', async (
   })
 })
 
+test('ops engineer can load ordered host metric history for a selected range', async () => {
+  const requests = []
+  const api = createAegisApi({
+    fetch: async (url) => {
+      requests.push(url)
+      return jsonResponse({
+        success: true,
+        code: 'OK',
+        message: 'host metric history',
+        data: {
+          hostId: 'host_001',
+          range: '30m',
+          points: [
+            {
+              reportedAt: '2026-06-06T10:30:00+08:00',
+              cpuUsagePercent: 31.2,
+              memoryUsagePercent: 52.4,
+              tcpConnectionCount: 96
+            },
+            {
+              reportedAt: '2026-06-06T10:35:00+08:00',
+              cpuUsagePercent: 42.6,
+              memoryUsagePercent: 61.2,
+              tcpConnectionCount: 128
+            }
+          ]
+        }
+      })
+    }
+  })
+
+  const history = await api.getHostMetricHistory('host_001', '30m')
+
+  assert.deepEqual(requests, ['/api/metrics/host/history?hostId=host_001&range=30m'])
+  assert.deepEqual(history, {
+    hostId: 'host_001',
+    range: '30m',
+    points: [
+      {
+        reportedAt: '2026-06-06T10:30:00+08:00',
+        cpuUsagePercent: 31.2,
+        memoryUsagePercent: 52.4,
+        tcpConnectionCount: 96
+      },
+      {
+        reportedAt: '2026-06-06T10:35:00+08:00',
+        cpuUsagePercent: 42.6,
+        memoryUsagePercent: 61.2,
+        tcpConnectionCount: 128
+      }
+    ]
+  })
+})
+
 test('ops engineer can load readable service list for a selected host', async () => {
   const requests = []
   const api = createAegisApi({
