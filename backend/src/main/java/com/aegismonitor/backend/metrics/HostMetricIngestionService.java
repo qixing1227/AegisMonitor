@@ -1,5 +1,6 @@
 package com.aegismonitor.backend.metrics;
 
+import com.aegismonitor.backend.error.ResourceNotFoundException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,7 +41,7 @@ public final class HostMetricIngestionService {
     public HostMetricPoint latestMetricPoint(String hostId) {
         return metricRepository
             .findLatest(hostId)
-            .orElseThrow(() -> new IllegalArgumentException("No metric point found for host " + hostId));
+            .orElseThrow(() -> new ResourceNotFoundException("No metric point found for host " + hostId));
     }
 
     public List<HostMetricPoint> metricHistory(String hostId, MetricHistoryRange range) {

@@ -1,5 +1,6 @@
 package com.aegismonitor.backend.api.services;
 
+import com.aegismonitor.backend.agent.AgentRegistry;
 import com.aegismonitor.backend.api.ApiResponse;
 import com.aegismonitor.backend.services.DiscoveredServiceReport;
 import com.aegismonitor.backend.services.ServiceDiscoveryReport;
@@ -18,9 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/services")
 public class ServiceReportController {
     private final ServiceInventory serviceInventory;
+    private final AgentRegistry agentRegistry;
 
-    public ServiceReportController(ServiceInventory serviceInventory) {
+    public ServiceReportController(
+        ServiceInventory serviceInventory,
+        AgentRegistry agentRegistry
+    ) {
         this.serviceInventory = serviceInventory;
+        this.agentRegistry = agentRegistry;
     }
 
     @PostMapping("/report")
@@ -29,6 +35,7 @@ public class ServiceReportController {
         @RequestHeader("X-Agent-Secret") String agentSecret,
         @RequestBody ServiceReportHttpRequest request
     ) {
+        agentRegistry.authenticate(agentId, request.hostId(), agentSecret);
         int upsertedCount = serviceInventory.report(
             new ServiceDiscoveryReport(
                 agentId,

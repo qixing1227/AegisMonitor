@@ -1,5 +1,6 @@
 package com.aegismonitor.backend.agent;
 
+import com.aegismonitor.backend.error.AgentAccessException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -50,16 +51,20 @@ public final class AgentRegistry {
         return new AgentRegistrationResult(agentId, hostId, agentSecret);
     }
 
-    public void heartbeat(AgentHeartbeatRequest request) {
+    public void authenticate(String agentId, String hostId, String agentSecret) {
         AgentRecord agent = repository
-            .findByAgentId(request.agentId())
-            .orElseThrow(() -> new IllegalArgumentException("Agent does not exist"));
-        if (!Objects.equals(agent.hostId(), request.hostId())) {
-            throw new IllegalArgumentException("Agent host does not match");
+            .findByAgentId(agentId)
+            .orElseThrow(AgentAccessException::unauthorized);
+        if (!Objects.equals(agent.agentSecret(), agentSecret)) {
+            throw AgentAccessException.unauthorized();
         }
-        if (!Objects.equals(agent.agentSecret(), request.agentSecret())) {
-            throw new IllegalArgumentException("Agent secret is invalid");
+        if (!Objects.equals(agent.hostId(), hostId)) {
+            throw AgentAccessException.forbidden();
         }
+    }
+
+    public void heartbeat(AgentHeartbeatRequest request) {
+        authenticate(request.agentId(), request.hostId(), request.agentSecret());
 
         repository.updateHeartbeat(
             request.agentId(),

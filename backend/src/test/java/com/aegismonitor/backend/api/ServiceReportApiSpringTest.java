@@ -93,6 +93,37 @@ class ServiceReportApiSpringTest {
             .andExpect(jsonPath("$.data[1].ports[0]").value(8080));
     }
 
+    @Test
+    void rejectsServiceReportWhenAgentSecretIsInvalid() throws Exception {
+        JsonNode identity = registerAgent();
+
+        mockMvc.perform(
+                post("/api/services/report")
+                    .header("X-Agent-Id", identity.path("agentId").asText())
+                    .header("X-Agent-Secret", "invalid-secret")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(serviceReportRequestJson("host_001"))
+            )
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsServiceReportWhenAgentDoesNotOwnHost() throws Exception {
+        JsonNode identity = registerAgent();
+
+        mockMvc.perform(
+                post("/api/services/report")
+                    .header("X-Agent-Id", identity.path("agentId").asText())
+                    .header("X-Agent-Secret", identity.path("agentSecret").asText())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(serviceReportRequestJson("host_999"))
+            )
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
     private JsonNode registerAgent() throws Exception {
         MvcResult registration = mockMvc.perform(
                 post("/api/agents/register")
@@ -160,5 +191,25 @@ class ServiceReportApiSpringTest {
                         """)
             )
             .andExpect(status().isOk());
+    }
+    private static String serviceReportRequestJson(String hostId) {
+        return """
+            {
+              "agentId": "agt_001",
+              "hostId": "%s",
+              "reportedAt": "2026-06-04T17:35:00+08:00",
+              "services": [
+                {
+                  "serviceName": "aegis-backend",
+                  "stackType": "SPRING_BOOT",
+                  "processName": "java.exe",
+                  "pid": 10240,
+                  "ports": [8080],
+                  "status": "RUNNING",
+                  "commandLine": "java -jar aegis-backend.jar"
+                }
+              ]
+            }
+            """.formatted(hostId);
     }
 }

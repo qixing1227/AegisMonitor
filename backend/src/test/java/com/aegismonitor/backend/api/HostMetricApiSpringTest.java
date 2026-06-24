@@ -179,6 +179,48 @@ class HostMetricApiSpringTest {
             .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void rejectsHostMetricsWhenAgentSecretIsInvalid() throws Exception {
+        JsonNode identity = registerAgent();
+
+        mockMvc.perform(
+                post("/api/metrics/host")
+                    .header("X-Agent-Id", identity.path("agentId").asText())
+                    .header("X-Agent-Secret", "invalid-secret")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(hostMetricRequestJson("host_001"))
+            )
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void rejectsHostMetricsWhenAgentDoesNotOwnHost() throws Exception {
+        JsonNode identity = registerAgent();
+
+        mockMvc.perform(
+                post("/api/metrics/host")
+                    .header("X-Agent-Id", identity.path("agentId").asText())
+                    .header("X-Agent-Secret", identity.path("agentSecret").asText())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(hostMetricRequestJson("host_999"))
+            )
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void returnsNotFoundWhenHostHasNoMetricSnapshot() throws Exception {
+        mockMvc.perform(
+                get("/api/metrics/host/latest")
+                    .queryParam("hostId", "host_missing")
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
     private JsonNode registerAgent() throws Exception {
         MvcResult registration = mockMvc.perform(
                 post("/api/agents/register")
@@ -253,5 +295,24 @@ class HostMetricApiSpringTest {
                         ))
             )
             .andExpect(status().isOk());
+    }
+    private static String hostMetricRequestJson(String hostId) {
+        return """
+            {
+              "agentId": "agt_001",
+              "hostId": "%s",
+              "reportedAt": "2026-06-04T17:30:00+08:00",
+              "cpu": {"usagePercent": 42.5, "perCoreUsagePercent": [35.1, 47.2]},
+              "memory": {
+                "totalBytes": 17179869184,
+                "usedBytes": 8589934592,
+                "availableBytes": 8589934592,
+                "usagePercent": 50.0
+              },
+              "disks": [],
+              "networks": [],
+              "tcp": {"connectionCount": 128, "listeningPorts": [80, 8080]}
+            }
+            """.formatted(hostId);
     }
 }

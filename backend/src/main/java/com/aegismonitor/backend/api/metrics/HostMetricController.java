@@ -1,5 +1,6 @@
 package com.aegismonitor.backend.api.metrics;
 
+import com.aegismonitor.backend.agent.AgentRegistry;
 import com.aegismonitor.backend.alerts.AlertService;
 import com.aegismonitor.backend.api.ApiResponse;
 import com.aegismonitor.backend.metrics.CpuSample;
@@ -26,13 +27,16 @@ import org.springframework.web.server.ResponseStatusException;
 public class HostMetricController {
     private final HostMetricIngestionService ingestionService;
     private final AlertService alertService;
+    private final AgentRegistry agentRegistry;
 
     public HostMetricController(
         HostMetricIngestionService ingestionService,
-        AlertService alertService
+        AlertService alertService,
+        AgentRegistry agentRegistry
     ) {
         this.ingestionService = ingestionService;
         this.alertService = alertService;
+        this.agentRegistry = agentRegistry;
     }
 
     @PostMapping("/host")
@@ -41,6 +45,7 @@ public class HostMetricController {
         @RequestHeader("X-Agent-Secret") String agentSecret,
         @RequestBody HostMetricHttpRequest request
     ) {
+        agentRegistry.authenticate(agentId, request.hostId(), agentSecret);
         ingestionService.ingest(
             new HostMetricReport(
                 agentId,
