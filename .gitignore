@@ -22,3 +22,16 @@ agent/agent.yml
 # Local runtime state
 .agent-state.json
 /build/
+
+# Local logs
+backend/*.log
+backend/*.err.log
+frontend/*.log
+frontend/*.err.log
+
+# Generated presentation workspace and local exports
+projects/
+AegisMonitor-Defense*.pptx
+
+# Local one-off helper scripts
+translate_exam_docs.ps1
