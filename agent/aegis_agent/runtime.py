@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import sys
 import time
 
 from aegis_agent.config import AgentConfig
@@ -56,7 +57,13 @@ class AgentRuntime:
         iterations = 0
 
         while max_iterations is None or iterations < max_iterations:
-            identity = self.run_once(reported_at_provider())
+            try:
+                identity = self.run_once(reported_at_provider())
+            except Exception as exc:
+                print(
+                    f"[aegis-agent] report failed: {exc}. retrying later.",
+                    file=sys.stderr,
+                )
             iterations += 1
 
             if max_iterations is not None and iterations >= max_iterations:

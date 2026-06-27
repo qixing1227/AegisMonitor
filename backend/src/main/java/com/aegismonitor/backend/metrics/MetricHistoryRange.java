@@ -6,7 +6,9 @@ import java.util.Arrays;
 public enum MetricHistoryRange {
     TEN_MINUTES("10m", Duration.ofMinutes(10), 180),
     THIRTY_MINUTES("30m", Duration.ofMinutes(30), 420),
-    ONE_HOUR("1h", Duration.ofHours(1), 800);
+    ONE_HOUR("1h", Duration.ofHours(1), 800),
+    SIX_HOURS("6h", Duration.ofHours(6), 1000),
+    TWENTY_FOUR_HOURS("24h", Duration.ofHours(24), 1200);
 
     private final String value;
     private final Duration duration;

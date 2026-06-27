@@ -42,6 +42,9 @@ CREATE TABLE host_metric_points (
     reported_at_epoch_ms BIGINT NOT NULL,
     cpu_usage_percent DOUBLE NOT NULL,
     memory_usage_percent DOUBLE NOT NULL,
+    disk_usage_percent DOUBLE NOT NULL DEFAULT 0,
+    network_bytes_sent BIGINT NOT NULL DEFAULT 0,
+    network_bytes_received BIGINT NOT NULL DEFAULT 0,
     tcp_connection_count INT NOT NULL,
     PRIMARY KEY (host_id, reported_at_epoch_ms)
 );
@@ -59,5 +62,7 @@ CREATE TABLE service_instances (
     status VARCHAR(32) NOT NULL,
     command_line VARCHAR(1024) NOT NULL,
     last_seen_at VARCHAR(64) NOT NULL,
+    process_cpu_percent DOUBLE NOT NULL DEFAULT 0,
+    process_memory_bytes BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (host_id, stack_type, service_name)
 );

@@ -1,5 +1,7 @@
 package com.aegismonitor.backend.agent;
 
+import java.time.OffsetDateTime;
+
 public final class AgentRegistryContractTest {
     public static void main(String[] args) {
         registersAgentAndAcceptsHeartbeat();
@@ -28,20 +30,21 @@ public final class AgentRegistryContractTest {
         assertEquals("agt_001", result.agentId(), "agent id");
         assertTrue(result.agentSecret().length() > 10, "agent secret should be generated");
 
+        String heartbeatAt = OffsetDateTime.now().toString();
         registry.heartbeat(
             new AgentHeartbeatRequest(
                 result.agentId(),
                 result.hostId(),
                 result.agentSecret(),
                 "ONLINE",
-                "2026-06-04T17:30:00+08:00"
+                heartbeatAt
             )
         );
 
         AgentStatus status = registry.getAgentStatus(result.agentId());
 
         assertEquals("ONLINE", status.status(), "agent status");
-        assertEquals("2026-06-04T17:30:00+08:00", status.lastHeartbeatAt(), "last heartbeat");
+        assertEquals(heartbeatAt, status.lastHeartbeatAt(), "last heartbeat");
     }
 
     private static void rejectsInvalidRegisterToken() {

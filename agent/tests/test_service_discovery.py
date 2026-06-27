@@ -20,13 +20,23 @@ class FakeConnection:
     laddr: FakeAddress
 
 
+@dataclass(frozen=True)
+class FakeMemoryInfo:
+    rss: int
+
+
 class FakeProcess:
-    def __init__(self, pid: int, name: str, cmdline: list[str]):
+    def __init__(self, pid: int, name: str, cmdline: list[str], cpu_percent: float = 0.0, rss: int = 0):
+        self._cpu_percent = cpu_percent
         self.info = {
             "pid": pid,
             "name": name,
             "cmdline": cmdline,
+            "memory_info": FakeMemoryInfo(rss),
         }
+
+    def cpu_percent(self, interval=None):
+        return self._cpu_percent
 
 
 class FakePsutil:
@@ -38,6 +48,8 @@ class FakePsutil:
                 10240,
                 "java.exe",
                 ["java", "-jar", "aegis-backend.jar", "--spring.profiles.active=dev"],
+                cpu_percent=3.5,
+                rss=268435456,
             ),
             FakeProcess(3306, "mysqld.exe", ["mysqld.exe", "--defaults-file=my.ini"]),
             FakeProcess(6379, "redis-server.exe", ["redis-server.exe", "redis.conf"]),
@@ -73,6 +85,8 @@ class ServiceDiscoveryTest(unittest.TestCase):
         self.assertEqual(services_by_type["REDIS"].process_name, "redis-server.exe")
         self.assertEqual(services_by_type["NGINX"].status, "RUNNING")
         self.assertEqual(services_by_type["NODEJS"].command_line, "node.exe server.js")
+        self.assertEqual(services_by_type["SPRING_BOOT"].process_cpu_percent, 3.5)
+        self.assertEqual(services_by_type["SPRING_BOOT"].process_memory_bytes, 268435456)
 
 
 if __name__ == "__main__":

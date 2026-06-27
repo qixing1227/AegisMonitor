@@ -14,6 +14,8 @@ public final class ServiceInstance {
     private final String status;
     private final String commandLine;
     private final String lastSeenAt;
+    private final double processCpuPercent;
+    private final long processMemoryBytes;
 
     public ServiceInstance(
         String hostId,
@@ -26,6 +28,22 @@ public final class ServiceInstance {
         String commandLine,
         String lastSeenAt
     ) {
+        this(hostId, serviceName, stackType, processName, pid, ports, status, commandLine, lastSeenAt, 0.0, 0L);
+    }
+
+    public ServiceInstance(
+        String hostId,
+        String serviceName,
+        String stackType,
+        String processName,
+        int pid,
+        List<Integer> ports,
+        String status,
+        String commandLine,
+        String lastSeenAt,
+        double processCpuPercent,
+        long processMemoryBytes
+    ) {
         this.hostId = hostId;
         this.serviceName = serviceName;
         this.stackType = stackType;
@@ -35,41 +53,29 @@ public final class ServiceInstance {
         this.status = status;
         this.commandLine = commandLine;
         this.lastSeenAt = lastSeenAt;
+        this.processCpuPercent = processCpuPercent;
+        this.processMemoryBytes = processMemoryBytes;
     }
 
-    public String hostId() {
-        return hostId;
-    }
+    public String hostId() { return hostId; }
 
-    public String serviceName() {
-        return serviceName;
-    }
+    public String serviceName() { return serviceName; }
 
-    public String stackType() {
-        return stackType;
-    }
+    public String stackType() { return stackType; }
 
-    public String processName() {
-        return processName;
-    }
+    public String processName() { return processName; }
 
-    public int pid() {
-        return pid;
-    }
+    public int pid() { return pid; }
 
-    public List<Integer> ports() {
-        return ports;
-    }
+    public List<Integer> ports() { return ports; }
 
-    public String status() {
-        return status;
-    }
+    public String status() { return status; }
 
-    public String commandLine() {
-        return commandLine;
-    }
+    public String commandLine() { return commandLine; }
 
-    public String lastSeenAt() {
-        return lastSeenAt;
-    }
+    public String lastSeenAt() { return lastSeenAt; }
+
+    public double processCpuPercent() { return processCpuPercent; }
+
+    public long processMemoryBytes() { return processMemoryBytes; }
 }

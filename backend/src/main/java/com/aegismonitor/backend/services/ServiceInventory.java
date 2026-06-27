@@ -26,7 +26,9 @@ public final class ServiceInventory {
                     service.ports(),
                     service.status(),
                     service.commandLine(),
-                    report.reportedAt()
+                    report.reportedAt(),
+                    service.processCpuPercent(),
+                    service.processMemoryBytes()
                 )
             );
             upsertedCount++;

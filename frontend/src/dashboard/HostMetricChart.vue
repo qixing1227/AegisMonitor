@@ -37,6 +37,27 @@ const metricConfig = computed(() => ({
     unit: '%',
     max: 100
   },
+  disk: {
+    field: 'diskUsagePercent',
+    label: '\u78c1\u76d8\u4f7f\u7528\u7387',
+    color: '#7c3aed',
+    unit: '%',
+    max: 100
+  },
+  networkRx: {
+    field: 'networkReceivedMb',
+    label: '\u7f51\u5361\u63a5\u6536',
+    color: '#0891b2',
+    unit: ' MB',
+    max: null
+  },
+  networkTx: {
+    field: 'networkSentMb',
+    label: '\u7f51\u5361\u53d1\u9001',
+    color: '#c2410c',
+    unit: ' MB',
+    max: null
+  },
   tcp: {
     field: 'tcpConnectionCount',
     label: 'TCP 连接数',

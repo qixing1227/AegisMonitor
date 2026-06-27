@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 agent/build/
+agent/.venv/
 
 # Java
 backend/build/
@@ -28,6 +29,8 @@ backend/*.log
 backend/*.err.log
 frontend/*.log
 frontend/*.err.log
+agent/*.log
+agent/*.err.log
 
 # Generated presentation workspace and local exports
 projects/

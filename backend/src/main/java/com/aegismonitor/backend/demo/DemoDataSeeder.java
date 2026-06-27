@@ -145,12 +145,12 @@ public final class DemoDataSeeder {
 
     private static DemoMetricProfile demoMetricProfile(String hostId) {
         if ("demo_host_001".equals(hostId)) {
-            return new DemoMetricProfile(36.8, 52.4, 48, List.of(80));
+            return new DemoMetricProfile(36.8, 52.4, 41.5, 48, 125829120L, 536870912L, List.of(80));
         }
         if ("demo_host_002".equals(hostId)) {
-            return new DemoMetricProfile(64.2, 68.7, 96, List.of(8080, 6379));
+            return new DemoMetricProfile(64.2, 68.7, 58.2, 96, 314572800L, 943718400L, List.of(8080, 6379));
         }
-        return new DemoMetricProfile(93.5, 74.9, 142, List.of(3306));
+        return new DemoMetricProfile(93.5, 74.9, 76.4, 142, 734003200L, 2147483648L, List.of(3306));
     }
 
     private static double roundOneDecimal(double value) {
@@ -255,7 +255,10 @@ public final class DemoDataSeeder {
     private record DemoMetricProfile(
         double cpuUsagePercent,
         double memoryUsagePercent,
+        double diskUsagePercent,
         int tcpConnectionCount,
+        long networkBytesSent,
+        long networkBytesReceived,
         List<Integer> listeningPorts
     ) {
     }

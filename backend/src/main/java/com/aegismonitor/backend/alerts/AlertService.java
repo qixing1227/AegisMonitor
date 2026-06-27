@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class AlertService {
+    private static final String CPU_HIGH = "CPU_HIGH";
+    private static final String MEMORY_HIGH = "MEMORY_HIGH";
+    private static final String TCP_CONNECTION_HIGH = "TCP_CONNECTION_HIGH";
+
     private final List<AlertRule> rules = new ArrayList<>();
     private final AlertRepository repository;
     private int nextEventNumber = 1;
@@ -33,7 +37,7 @@ public final class AlertService {
             }
 
             AlertEvent event = new AlertEvent(
-                formatEventId(nextEventNumber++),
+                nextAvailableEventId(),
                 rule.ruleId(),
                 point.hostId(),
                 rule.metricName(),
@@ -72,15 +76,24 @@ public final class AlertService {
     }
 
     private static boolean isTriggered(AlertRule rule, HostMetricPoint point) {
-        return "CPU_HIGH".equals(rule.metricName())
-            && point.cpuUsagePercent() >= rule.threshold();
+        return actualValue(rule, point) >= rule.threshold();
     }
 
     private static double actualValue(AlertRule rule, HostMetricPoint point) {
-        if ("CPU_HIGH".equals(rule.metricName())) {
-            return point.cpuUsagePercent();
-        }
-        throw new IllegalArgumentException("Unsupported alert metric " + rule.metricName());
+        return switch (rule.metricName()) {
+            case CPU_HIGH -> point.cpuUsagePercent();
+            case MEMORY_HIGH -> point.memoryUsagePercent();
+            case TCP_CONNECTION_HIGH -> point.tcpConnectionCount();
+            default -> throw new IllegalArgumentException("Unsupported alert metric " + rule.metricName());
+        };
+    }
+
+    private String nextAvailableEventId() {
+        String eventId;
+        do {
+            eventId = formatEventId(nextEventNumber++);
+        } while (repository.findByEventId(eventId).isPresent());
+        return eventId;
     }
 
     private static String formatEventId(int value) {

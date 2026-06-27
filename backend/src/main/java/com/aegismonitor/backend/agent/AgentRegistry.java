@@ -1,24 +1,34 @@
 package com.aegismonitor.backend.agent;
 
 import com.aegismonitor.backend.error.AgentAccessException;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 public final class AgentRegistry {
+    private static final Duration HEARTBEAT_OFFLINE_THRESHOLD = Duration.ofSeconds(60);
+
     private final String registerToken;
     private final AgentRepository repository;
+    private final Clock clock;
     private int nextHostNumber = 1;
     private int nextAgentNumber = 1;
 
     public AgentRegistry(String registerToken) {
-        this(registerToken, new InMemoryAgentRepository());
+        this(registerToken, new InMemoryAgentRepository(), Clock.systemDefaultZone());
     }
 
     public AgentRegistry(String registerToken, AgentRepository repository) {
+        this(registerToken, repository, Clock.systemDefaultZone());
+    }
+
+    public AgentRegistry(String registerToken, AgentRepository repository, Clock clock) {
         this.registerToken = registerToken;
         this.repository = repository;
+        this.clock = clock;
     }
 
     public AgentRegistrationResult register(String token, AgentRegistrationRequest request) {
@@ -45,7 +55,7 @@ public final class AgentRegistry {
                 request.agentVersion(),
                 "ONLINE",
                 null,
-                OffsetDateTime.now().toString()
+                OffsetDateTime.now(clock).toString()
             )
         );
         return new AgentRegistrationResult(agentId, hostId, agentSecret);
@@ -80,7 +90,7 @@ public final class AgentRegistry {
         return new AgentStatus(
             agent.agentId(),
             agent.hostId(),
-            agent.status(),
+            effectiveStatus(agent),
             agent.lastHeartbeatAt()
         );
     }
@@ -88,11 +98,11 @@ public final class AgentRegistry {
     public List<AgentSummary> listAgents() {
         return repository.findAll()
             .stream()
-            .map(AgentRegistry::toSummary)
+            .map(this::toSummary)
             .toList();
     }
 
-    private static AgentSummary toSummary(AgentRecord agent) {
+    private AgentSummary toSummary(AgentRecord agent) {
         return new AgentSummary(
             agent.agentId(),
             agent.hostId(),
@@ -104,9 +114,34 @@ public final class AgentRegistry {
             agent.cpuCores(),
             agent.memoryTotalBytes(),
             agent.agentVersion(),
-            agent.status(),
+            effectiveStatus(agent),
             agent.lastHeartbeatAt()
         );
+    }
+
+    private String effectiveStatus(AgentRecord agent) {
+        if (isDemoAgent(agent)) {
+            return agent.status();
+        }
+        if (!"ONLINE".equals(agent.status()) || agent.lastHeartbeatAt() == null || agent.lastHeartbeatAt().isBlank()) {
+            return agent.status();
+        }
+
+        try {
+            OffsetDateTime lastHeartbeatAt = OffsetDateTime.parse(agent.lastHeartbeatAt());
+            OffsetDateTime now = OffsetDateTime.now(clock);
+            return lastHeartbeatAt.plus(HEARTBEAT_OFFLINE_THRESHOLD).isBefore(now)
+                ? "OFFLINE"
+                : "ONLINE";
+        } catch (RuntimeException ignored) {
+            return agent.status();
+        }
+    }
+
+    private static boolean isDemoAgent(AgentRecord agent) {
+        return agent.agentId().startsWith("demo_")
+            || agent.hostId().startsWith("demo_")
+            || agent.agentVersion().endsWith("-demo");
     }
 
     private static String formatId(String prefix, int value) {

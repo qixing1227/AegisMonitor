@@ -8,5 +8,9 @@ public interface HostMetricRepository {
 
     Optional<HostMetricPoint> findLatest(String hostId);
 
-    List<HostMetricPoint> findHistory(String hostId, long windowMillis, int maxPoints);
+    List<HostMetricPoint> findHistoryBetween(
+        String hostId,
+        long startEpochMillisInclusive,
+        long endEpochMillisExclusive
+    );
 }

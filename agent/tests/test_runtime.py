@@ -342,6 +342,63 @@ class AgentRuntimeTest(unittest.TestCase):
                 "2026-06-04T17:40:05+08:00",
             )
 
+    def test_run_forever_retries_after_transient_report_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = AgentConfig(
+                server_url="http://127.0.0.1:65530/api",
+                register_token="demo-register-token",
+                host_alias="demo-host-a",
+                host_metric_interval_seconds=5,
+                heartbeat_interval_seconds=10,
+                service_discovery_interval_seconds=30,
+                state_file=Path(tmp) / ".agent-state.json",
+            )
+            runtime = AgentRuntime(
+                config=config,
+                state_store=AgentStateStore(config.state_file),
+                host_snapshot_provider=lambda: self.fail("real run_once is replaced"),
+                metric_collector=FakeMetricCollector(),
+            )
+            outcomes = iter(
+                [
+                    ConnectionError("backend is restarting"),
+                    AgentIdentity("agt_001", "host_001", "secret"),
+                ]
+            )
+            reported_times = iter(
+                [
+                    "2026-06-04T17:45:00+08:00",
+                    "2026-06-04T17:45:05+08:00",
+                ]
+            )
+            sleep_intervals = []
+            attempts = []
+
+            def fake_run_once(reported_at: str) -> AgentIdentity:
+                attempts.append(reported_at)
+                outcome = next(outcomes)
+                if isinstance(outcome, Exception):
+                    raise outcome
+                return outcome
+
+            runtime.run_once = fake_run_once
+
+            identity = runtime.run_forever(
+                reported_at_provider=lambda: next(reported_times),
+                sleeper=lambda seconds: sleep_intervals.append(seconds),
+                max_iterations=2,
+            )
+
+            self.assertEqual(identity, AgentIdentity("agt_001", "host_001", "secret"))
+            self.assertEqual(
+                attempts,
+                [
+                    "2026-06-04T17:45:00+08:00",
+                    "2026-06-04T17:45:05+08:00",
+                ],
+            )
+            self.assertEqual(sleep_intervals, [5])
+
 
 if __name__ == "__main__":
     unittest.main()

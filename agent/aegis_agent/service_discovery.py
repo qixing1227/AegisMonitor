@@ -15,6 +15,8 @@ class DiscoveredService:
     ports: list[int]
     status: str
     command_line: str
+    process_cpu_percent: float = 0.0
+    process_memory_bytes: int = 0
 
 
 @dataclass(frozen=True)
@@ -31,8 +33,13 @@ class PsutilServiceDiscoveryCollector:
         ports_by_pid = self._listening_ports_by_pid()
         services: list[DiscoveredService] = []
 
-        for process in self._psutil.process_iter(["pid", "name", "cmdline"]):
-            service = _identify_service(process.info, ports_by_pid.get(int(process.info["pid"]), []))
+        for process in self._psutil.process_iter(["pid", "name", "cmdline", "memory_info"]):
+            service = _identify_service(
+                process.info,
+                ports_by_pid.get(int(process.info["pid"]), []),
+                _process_cpu_percent(process),
+                _process_memory_bytes(process),
+            )
             if service is not None:
                 services.append(service)
 
@@ -84,13 +91,20 @@ def _to_payload(identity: AgentIdentity, snapshot: ServiceDiscoverySnapshot) -> 
                 "ports": service.ports,
                 "status": service.status,
                 "commandLine": service.command_line,
+                "processCpuPercent": service.process_cpu_percent,
+                "processMemoryBytes": service.process_memory_bytes,
             }
             for service in snapshot.services
         ],
     }
 
 
-def _identify_service(info: dict, ports: list[int]) -> DiscoveredService | None:
+def _identify_service(
+    info: dict,
+    ports: list[int],
+    process_cpu_percent: float,
+    process_memory_bytes: int,
+) -> DiscoveredService | None:
     pid = int(info["pid"])
     process_name = str(info.get("name") or "")
     process_key = process_name.lower()
@@ -107,15 +121,17 @@ def _identify_service(info: dict, ports: list[int]) -> DiscoveredService | None:
             ports=ports,
             status="RUNNING",
             command_line=command_line,
+            process_cpu_percent=process_cpu_percent,
+            process_memory_bytes=process_memory_bytes,
         )
     if "mysqld" in process_key:
-        return _service("mysql", "MYSQL", process_name, pid, ports, command_line)
+        return _service("mysql", "MYSQL", process_name, pid, ports, command_line, process_cpu_percent, process_memory_bytes)
     if "redis-server" in process_key:
-        return _service("redis", "REDIS", process_name, pid, ports, command_line)
+        return _service("redis", "REDIS", process_name, pid, ports, command_line, process_cpu_percent, process_memory_bytes)
     if "nginx" in process_key:
-        return _service("nginx", "NGINX", process_name, pid, ports, command_line)
+        return _service("nginx", "NGINX", process_name, pid, ports, command_line, process_cpu_percent, process_memory_bytes)
     if process_key in {"node", "node.exe"}:
-        return _service(_node_service_name(cmdline), "NODEJS", process_name, pid, ports, command_line)
+        return _service(_node_service_name(cmdline), "NODEJS", process_name, pid, ports, command_line, process_cpu_percent, process_memory_bytes)
     return None
 
 
@@ -126,6 +142,8 @@ def _service(
     pid: int,
     ports: list[int],
     command_line: str,
+    process_cpu_percent: float,
+    process_memory_bytes: int,
 ) -> DiscoveredService:
     return DiscoveredService(
         service_name=service_name,
@@ -135,7 +153,42 @@ def _service(
         ports=ports,
         status="RUNNING",
         command_line=command_line,
+        process_cpu_percent=process_cpu_percent,
+        process_memory_bytes=process_memory_bytes,
     )
+
+
+def _process_cpu_percent(process) -> float:
+    try:
+        return float(process.cpu_percent(interval=None))
+    except (AttributeError, OSError, TypeError, ValueError):
+        try:
+            return float(process.info.get("cpu_percent") or 0.0)
+        except (AttributeError, TypeError, ValueError):
+            return 0.0
+
+
+def _process_memory_bytes(process) -> int:
+    memory_info = None
+    try:
+        memory_info = process.info.get("memory_info")
+    except AttributeError:
+        memory_info = None
+
+    if memory_info is None:
+        try:
+            memory_info = process.memory_info()
+        except (AttributeError, OSError, TypeError, ValueError):
+            return 0
+
+    rss = getattr(memory_info, "rss", None)
+    if rss is not None:
+        return int(rss)
+
+    try:
+        return int(memory_info[0])
+    except (TypeError, ValueError, IndexError):
+        return 0
 
 
 def _is_spring_boot(process_key: str, command_key: str) -> bool:

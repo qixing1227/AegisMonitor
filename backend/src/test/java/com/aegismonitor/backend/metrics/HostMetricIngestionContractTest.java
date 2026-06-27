@@ -17,6 +17,8 @@ public final class HostMetricIngestionContractTest {
                 "2026-06-04T17:30:00+08:00",
                 new CpuSample(42.5),
                 new MemorySample(50.0),
+                new DiskSample(71.2),
+                new NetworkSample(123456L, 987654L),
                 new TcpSample(128, Arrays.asList(80, 3306, 6379, 8080))
             )
         );
@@ -29,6 +31,9 @@ public final class HostMetricIngestionContractTest {
         assertDoubleEquals(42.5, point.cpuUsagePercent(), "cpu usage");
         assertDoubleEquals(50.0, point.memoryUsagePercent(), "memory usage");
         assertEquals(128, point.tcpConnectionCount(), "tcp connection count");
+        assertDoubleEquals(71.2, point.diskUsagePercent(), "disk usage");
+        assertEquals(123456L, point.networkBytesSent(), "network sent bytes");
+        assertEquals(987654L, point.networkBytesReceived(), "network received bytes");
 
         assertEquals("host_001", snapshot.hostId(), "snapshot host id");
         assertEquals(Arrays.asList(80, 3306, 6379, 8080), snapshot.listeningPorts(), "listening ports");

@@ -29,18 +29,23 @@ public final class InMemoryHostMetricRepository implements HostMetricRepository 
     }
 
     @Override
-    public List<HostMetricPoint> findHistory(String hostId, long windowMillis, int maxPoints) {
+    public List<HostMetricPoint> findHistoryBetween(
+        String hostId,
+        long startEpochMillisInclusive,
+        long endEpochMillisExclusive
+    ) {
         ConcurrentNavigableMap<Long, HostMetricPoint> points = pointsByHost.get(hostId);
         if (points == null || points.isEmpty()) {
             return List.of();
         }
 
-        long latestTimestamp = points.lastKey();
-        List<HostMetricPoint> history = new ArrayList<>(
-            points.tailMap(latestTimestamp - windowMillis, true).values()
+        return List.copyOf(
+            new ArrayList<>(
+                points
+                    .subMap(startEpochMillisInclusive, true, endEpochMillisExclusive, false)
+                    .values()
+            )
         );
-        int fromIndex = Math.max(0, history.size() - maxPoints);
-        return List.copyOf(history.subList(fromIndex, history.size()));
     }
 
     private static long toEpochMillis(String reportedAt) {

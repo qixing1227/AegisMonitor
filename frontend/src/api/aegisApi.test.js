@@ -67,6 +67,9 @@ test('ops engineer can load latest metric snapshot for a selected host', async (
           reportedAt: '2026-06-06T10:32:00+08:00',
           cpuUsagePercent: 42.6,
           memoryUsagePercent: 61.2,
+          diskUsagePercent: 72.3,
+          networkBytesSent: 10485760,
+          networkBytesReceived: 20971520,
           tcpConnectionCount: 128
         }
       })
@@ -81,6 +84,11 @@ test('ops engineer can load latest metric snapshot for a selected host', async (
     reportedAt: '2026-06-06T10:32:00+08:00',
     cpuUsagePercent: 42.6,
     memoryUsagePercent: 61.2,
+    diskUsagePercent: 72.3,
+    networkBytesSent: 10485760,
+    networkBytesReceived: 20971520,
+    networkSentMb: 10,
+    networkReceivedMb: 20,
     tcpConnectionCount: 128
   })
 })
@@ -102,12 +110,18 @@ test('ops engineer can load ordered host metric history for a selected range', a
               reportedAt: '2026-06-06T10:30:00+08:00',
               cpuUsagePercent: 31.2,
               memoryUsagePercent: 52.4,
+              diskUsagePercent: 40.1,
+              networkBytesSent: 1048576,
+              networkBytesReceived: 2097152,
               tcpConnectionCount: 96
             },
             {
               reportedAt: '2026-06-06T10:35:00+08:00',
               cpuUsagePercent: 42.6,
               memoryUsagePercent: 61.2,
+              diskUsagePercent: 42.2,
+              networkBytesSent: 3145728,
+              networkBytesReceived: 4194304,
               tcpConnectionCount: 128
             }
           ]
@@ -122,18 +136,81 @@ test('ops engineer can load ordered host metric history for a selected range', a
   assert.deepEqual(history, {
     hostId: 'host_001',
     range: '30m',
+    date: '',
     points: [
       {
         reportedAt: '2026-06-06T10:30:00+08:00',
         cpuUsagePercent: 31.2,
         memoryUsagePercent: 52.4,
+        diskUsagePercent: 40.1,
+        networkBytesSent: 1048576,
+        networkBytesReceived: 2097152,
+        networkSentMb: 1,
+        networkReceivedMb: 2,
         tcpConnectionCount: 96
       },
       {
         reportedAt: '2026-06-06T10:35:00+08:00',
         cpuUsagePercent: 42.6,
         memoryUsagePercent: 61.2,
+        diskUsagePercent: 42.2,
+        networkBytesSent: 3145728,
+        networkBytesReceived: 4194304,
+        networkSentMb: 3,
+        networkReceivedMb: 4,
         tcpConnectionCount: 128
+      }
+    ]
+  })
+})
+
+test('ops engineer can load host metric history for a selected date', async () => {
+  const requests = []
+  const api = createAegisApi({
+    fetch: async (url) => {
+      requests.push(url)
+      return jsonResponse({
+        success: true,
+        code: 'OK',
+        message: 'host metric history',
+        data: {
+          hostId: 'host_001',
+          range: 'day',
+          date: '2026-06-06',
+          points: [
+            {
+              reportedAt: '2026-06-06T10:30:00+08:00',
+              cpuUsagePercent: 31.2,
+              memoryUsagePercent: 52.4,
+              diskUsagePercent: 40.1,
+              networkBytesSent: 1048576,
+              networkBytesReceived: 2097152,
+              tcpConnectionCount: 96
+            }
+          ]
+        }
+      })
+    }
+  })
+
+  const history = await api.getHostMetricHistory('host_001', '10m', { date: '2026-06-06' })
+
+  assert.deepEqual(requests, ['/api/metrics/host/history?hostId=host_001&date=2026-06-06'])
+  assert.deepEqual(history, {
+    hostId: 'host_001',
+    range: 'day',
+    date: '2026-06-06',
+    points: [
+      {
+        reportedAt: '2026-06-06T10:30:00+08:00',
+        cpuUsagePercent: 31.2,
+        memoryUsagePercent: 52.4,
+        diskUsagePercent: 40.1,
+        networkBytesSent: 1048576,
+        networkBytesReceived: 2097152,
+        networkSentMb: 1,
+        networkReceivedMb: 2,
+        tcpConnectionCount: 96
       }
     ]
   })
@@ -158,6 +235,8 @@ test('ops engineer can load readable service list for a selected host', async ()
             ports: [80, 443],
             status: 'RUNNING',
             commandLine: 'nginx -g daemon off;',
+            processCpuPercent: 1.5,
+            processMemoryBytes: 67108864,
             lastSeenAt: '2026-06-06T10:40:00+08:00'
           }
         ]
@@ -180,6 +259,9 @@ test('ops engineer can load readable service list for a selected host', async ()
       portsText: '80, 443',
       status: 'RUNNING',
       commandLine: 'nginx -g daemon off;',
+      processCpuPercent: 1.5,
+      processMemoryBytes: 67108864,
+      processMemoryMb: 64,
       lastSeenAt: '2026-06-06T10:40:00+08:00'
     }
   ])

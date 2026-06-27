@@ -29,13 +29,18 @@ const props = defineProps({
 const activeMetric = ref('cpu')
 const metricOptions = [
   { value: 'cpu', label: 'CPU' },
-  { value: 'memory', label: '内存' },
+  { value: 'memory', label: '\u5185\u5b58' },
+  { value: 'disk', label: '\u78c1\u76d8' },
+  { value: 'networkRx', label: '\u7f51\u5361 RX' },
+  { value: 'networkTx', label: '\u7f51\u5361 TX' },
   { value: 'tcp', label: 'TCP' }
 ]
 const rangeOptions = [
-  { value: '10m', label: '10 分钟' },
-  { value: '30m', label: '30 分钟' },
-  { value: '1h', label: '1 小时' }
+  { value: '10m', label: '10 \u5206\u949f' },
+  { value: '30m', label: '30 \u5206\u949f' },
+  { value: '1h', label: '1 \u5c0f\u65f6' },
+  { value: '6h', label: '6 \u5c0f\u65f6' },
+  { value: '24h', label: '24 \u5c0f\u65f6' }
 ]
 
 const refreshLoop = createRefreshLoop({
@@ -67,12 +72,27 @@ async function selectHistoryRange(range) {
   await store.setMetricHistoryRange(range)
 }
 
+async function selectHistoryDate(event) {
+  await store.setMetricHistoryDate(event.target.value)
+}
+
 function formatMemory(host) {
   return host ? `${host.memoryTotalGb} GB` : '--'
 }
 
 function formatPercent(value) {
   return typeof value === 'number' ? `${value.toFixed(1)}%` : '--'
+}
+
+function formatTraffic(metric) {
+  if (!metric) {
+    return '--'
+  }
+  return `\u2193 ${formatMb(metric.networkReceivedMb)} / \u2191 ${formatMb(metric.networkSentMb)}`
+}
+
+function formatMb(value) {
+  return typeof value === 'number' ? `${value.toFixed(1)} MB` : '--'
 }
 </script>
 
@@ -167,6 +187,16 @@ function formatPercent(value) {
             <span>TCP 连接数</span>
             <strong>{{ store.latestMetric.value?.tcpConnectionCount ?? '--' }}</strong>
           </article>
+          <article class="detail-card">
+            <HardDrive :size="20" aria-hidden="true" />
+            <span>&#x78C1;&#x76D8;&#x4F7F;&#x7528;&#x7387;</span>
+            <strong>{{ formatPercent(store.latestMetric.value?.diskUsagePercent) }}</strong>
+          </article>
+          <article class="detail-card">
+            <Network :size="20" aria-hidden="true" />
+            <span>&#x7F51;&#x5361;&#x6536;&#x53D1;&#x6D41;&#x91CF;</span>
+            <strong>{{ formatTraffic(store.latestMetric.value) }}</strong>
+          </article>
         </section>
 
         <section class="host-panel metric-history-panel">
@@ -196,12 +226,21 @@ function formatPercent(value) {
                 :key="option.value"
                 type="button"
                 :disabled="store.historyLoading.value"
-                :class="{ 'is-active': store.metricHistoryRange.value === option.value }"
+                :class="{ 'is-active': !store.metricHistoryDate.value && store.metricHistoryRange.value === option.value }"
                 @click="selectHistoryRange(option.value)"
               >
                 {{ option.label }}
               </button>
             </div>
+            <label class="history-date-picker">
+              <span>&#x6309;&#x65E5;&#x671F;</span>
+              <input
+                type="date"
+                :value="store.metricHistoryDate.value"
+                :disabled="store.historyLoading.value"
+                @change="selectHistoryDate"
+              >
+            </label>
           </div>
 
           <div v-if="store.historyError.value" class="status-banner status-banner--warning">
@@ -223,7 +262,8 @@ function formatPercent(value) {
 
           <div class="metric-history-meta">
             <span>最新采样：{{ store.latestMetric.value?.reportedAt || '--' }}</span>
-            <span>自动刷新：5 秒</span>
+            <span v-if="store.metricHistoryDate.value">&#x5F53;&#x524D;&#x65E5;&#x671F;&#xFF1A;{{ store.metricHistoryDate.value }}</span>
+            <span v-else>&#x81EA;&#x52A8;&#x5237;&#x65B0;&#xFF1A;5 &#x79D2;</span>
           </div>
         </section>
       </template>

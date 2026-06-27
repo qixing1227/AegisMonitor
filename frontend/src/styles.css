@@ -385,6 +385,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 12px;
 }
@@ -425,6 +426,33 @@ a {
 .segmented-control button:disabled {
   cursor: wait;
   opacity: 0.68;
+}
+
+.history-date-picker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #475569;
+  background: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.history-date-picker input {
+  min-height: 30px;
+  border: 0;
+  color: #1f2937;
+  background: transparent;
+  font: inherit;
+}
+
+.history-date-picker input:focus {
+  outline: 2px solid #99f6e4;
+  outline-offset: 2px;
 }
 
 .metric-history-chart {
@@ -541,6 +569,14 @@ a {
   background: #f8fafc;
 }
 
+.service-process small {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
 .stack-chip {
   display: inline-flex;
   align-items: center;
@@ -605,6 +641,15 @@ a {
   font-size: 0.76rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.real-host-row > :nth-child(5),
+.real-host-row > :nth-child(6),
+.service-row > :nth-child(6),
+.alert-row > :nth-child(6),
+.alert-row > :nth-child(7) {
+  justify-self: center;
+  text-align: center;
 }
 
 .alert-actions {
@@ -1716,6 +1761,11 @@ h3 {
       minmax(120px, 0.9fr)
       minmax(100px, 0.8fr)
       minmax(90px, 0.7fr);
+  }
+
+  .service-row > :nth-child(6) {
+    justify-self: start;
+    text-align: left;
   }
 
   .alert-row {

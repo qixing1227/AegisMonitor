@@ -27,6 +27,9 @@ const openAlertCount = computed(() => store.alerts.value.filter((alert) => alert
 const acknowledgedAlertCount = computed(() =>
   store.alerts.value.filter((alert) => !alert.open).length
 )
+const hostById = computed(() =>
+  new Map(store.hosts.value.map((host) => [host.id, host]))
+)
 
 const refreshLoop = createRefreshLoop({
   intervalMs: 10000,
@@ -34,7 +37,10 @@ const refreshLoop = createRefreshLoop({
 })
 
 onMounted(() => {
-  void store.loadAlerts()
+  void Promise.all([
+    store.loadHosts({ silent: true }),
+    store.loadAlerts()
+  ])
   refreshLoop.start()
 })
 
@@ -86,6 +92,47 @@ function formatNumber(value) {
   return Number.isFinite(number) ? number.toFixed(1) : '--'
 }
 
+function hostForAlert(alert) {
+  return hostById.value.get(alert.hostId) ?? null
+}
+
+function hostDisplayName(alert) {
+  const host = hostForAlert(alert)
+  return host?.hostname || alert.hostId
+}
+
+function hostDisplayMeta(alert) {
+  const host = hostForAlert(alert)
+  if (!host) {
+    return alert.hostId
+  }
+  return [host.alias, host.ipAddress, alert.hostId].filter(Boolean).join(' / ')
+}
+
+function metricDisplayName(metricName) {
+  const names = {
+    CPU_HIGH: 'CPU 高负载',
+    MEMORY_HIGH: '内存高占用',
+    TCP_CONNECTION_HIGH: 'TCP 连接数过高'
+  }
+  return names[metricName] ?? metricName
+}
+
+function alertReason(alert) {
+  const metricName = metricDisplayName(alert.metricName)
+  const actual = formatNumber(alert.actualValue)
+  const threshold = formatNumber(alert.thresholdValue)
+  if (alert.metricName === 'CPU_HIGH') {
+    return `${metricName}：${actual}% 超过 ${threshold}%，建议查看主机详情曲线和高占用进程。`
+  }
+  if (alert.metricName === 'MEMORY_HIGH') {
+    return `${metricName}：${actual}% 超过 ${threshold}%，建议检查应用内存占用和后台进程。`
+  }
+  if (alert.metricName === 'TCP_CONNECTION_HIGH') {
+    return `${metricName}：${actual} 超过 ${threshold}，建议检查网络连接和监听服务。`
+  }
+  return `${metricName}：当前值 ${actual}，阈值 ${threshold}。`
+}
 function toLocalDateTimeInput(date) {
   return [
     date.getFullYear(),
@@ -219,8 +266,14 @@ function pad(value) {
               {{ alert.eventId }}
               <small>{{ alert.occurredAt || '--' }}</small>
             </strong>
-            <span>{{ alert.hostId }}</span>
-            <span>{{ alert.metricName }}</span>
+            <span>
+              {{ hostDisplayName(alert) }}
+              <small>{{ hostDisplayMeta(alert) }}</small>
+            </span>
+            <span>
+              {{ metricDisplayName(alert.metricName) }}
+              <small>{{ alertReason(alert) }}</small>
+            </span>
             <span>{{ formatNumber(alert.actualValue) }}</span>
             <span>{{ formatNumber(alert.thresholdValue) }}</span>
             <span class="severity-pill" :class="`severity-${alert.severity}`">

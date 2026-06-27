@@ -2,6 +2,7 @@ package com.aegismonitor.backend.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,13 +45,14 @@ class PersistentAgentRegistryTest {
                 "0.1.0"
             )
         );
+        String heartbeatAt = OffsetDateTime.now().toString();
         firstRegistry.heartbeat(
             new AgentHeartbeatRequest(
                 identity.agentId(),
                 identity.hostId(),
                 identity.agentSecret(),
                 "ONLINE",
-                "2026-06-04T17:30:00+08:00"
+                heartbeatAt
             )
         );
 
@@ -62,6 +64,6 @@ class PersistentAgentRegistryTest {
         assertThat(agents.get(0).agentId()).isEqualTo("agt_001");
         assertThat(agents.get(0).hostname()).isEqualTo("DESKTOP-QIXING");
         assertThat(agents.get(0).status()).isEqualTo("ONLINE");
-        assertThat(agents.get(0).lastHeartbeatAt()).isEqualTo("2026-06-04T17:30:00+08:00");
+        assertThat(agents.get(0).lastHeartbeatAt()).isEqualTo(heartbeatAt);
     }
 }

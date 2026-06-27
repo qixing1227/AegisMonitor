@@ -62,11 +62,19 @@ public class BackendConfiguration {
     @Bean
     AlertService alertService(
         @Value("${aegis.alert.cpu-high-threshold:80.0}") double cpuHighThreshold,
+        @Value("${aegis.alert.memory-high-threshold:85.0}") double memoryHighThreshold,
+        @Value("${aegis.alert.tcp-connection-high-threshold:1000.0}") double tcpConnectionHighThreshold,
         AlertRepository alertRepository
     ) {
         AlertService alertService = new AlertService(alertRepository);
         alertService.addRule(
             new AlertRule("rule_cpu_high", "CPU_HIGH", cpuHighThreshold, "CRITICAL")
+        );
+        alertService.addRule(
+            new AlertRule("rule_memory_high", "MEMORY_HIGH", memoryHighThreshold, "WARNING")
+        );
+        alertService.addRule(
+            new AlertRule("rule_tcp_connection_high", "TCP_CONNECTION_HIGH", tcpConnectionHighThreshold, "WARNING")
         );
         return alertService;
     }

@@ -8,7 +8,7 @@ AegisMonitor 是一个面向《软件工程》课程设计的**一体化监控�
 
 截至当前版本，AegisMonitor 已完成课程设计 MVP 主链路：
 
-- Python Agent 可以在 Windows 主机上采集 CPU、内存、TCP 连接数和服务进程，并向中心后端持续上报。
+- Python Agent 可以在 Windows 主机上采集 CPU、内存、磁盘使用率、网卡收发字节、TCP 连接数和服务进程指标，并向中心后端持续上报。
 - Spring Boot 后端完成 Agent 注册、心跳、指标入库、历史指标查询、服务组件管理、告警生成和 ACK 确认。
 - MySQL 持久化保存主机、Agent、指标、服务和告警数据。
 - Vue 3 前端完成总览、主机列表、主机详情、历史指标曲线、服务组件页和告警中心。
@@ -20,7 +20,7 @@ AegisMonitor 是一个面向《软件工程》课程设计的**一体化监控�
 | 模块 | 已实现能力 | 答辩价值 |
 | --- | --- | --- |
 | Agent 纳管 | 注册、心跳、本地状态文件、持续运行脚本 | 证明系统不是静态页面，而是有真实主机接入 |
-| 主机监控 | CPU、内存、TCP、最近心跳、真实/模拟标签 | 展示一体化监控平台的基础能力 |
+| 主机监控 | CPU、内存、磁盘、网卡、TCP、最近心跳、真实/模拟标签 | 展示一体化监控平台的基础能力 |
 | 历史趋势 | 主机详情页展示指标曲线和时间范围切换 | 体现监控系统对时间序列数据的处理 |
 | 服务发现 | 识别 NGINX、MySQL、Spring Boot 等服务实例 | 从主机层扩展到组件层监控 |
 | 告警中心 | 高 CPU 告警、OPEN/ACKED 状态、ACK 备注 | 形成“发现问题 -> 人工确认”的运维闭环 |
@@ -105,7 +105,7 @@ agent\run-once.cmd --config agent\agent.example.yml
 agent\run.cmd --config agent\agent.example.yml
 ```
 
-持续运行后，主机详情页中的 CPU、内存、TCP 连接数、最近心跳和历史曲线会随着 Agent 上报刷新。
+持续运行后，主机详情页中的 CPU、内存、磁盘使用率、网卡收发流量、TCP 连接数、最近心跳和历史曲线会随着 Agent 上报刷新。
 
 ## 接入其他真实主机
 
@@ -178,10 +178,10 @@ npm.cmd run build
 
 | 模块 | 结果 |
 | --- | --- |
-| 后端 | 26 项通过，0 失败 |
-| 前端 | 20 项通过，0 失败 |
-| Agent | 18 项通过，0 失败 |
-| 合计 | 64 项通过，0 失败 |
+| 后端 | 29 项通过，0 失败 |
+| 前端 | 21 项通过，0 失败 |
+| Agent | 19 项通过，0 失败 |
+| 合计 | 69 项通过，0 失败 |
 
 ## 答辩阅读顺序
 
@@ -189,14 +189,15 @@ npm.cmd run build
 
 1. `docs/AegisMonitor/18-项目讲解手册-答辩版.md`
 2. `docs/AegisMonitor/16-最终答辩演示脚本.md`
-3. `docs/AegisMonitor/17-测试记录与验收截图.md`
-4. `docs/AegisMonitor/15-多主机接入与演示部署说明.md`
-5. `docs/AegisMonitor/01-产品需求文档-PRD.md`
-6. `docs/AegisMonitor/02-需求规格说明书.md`
-7. `docs/AegisMonitor/08-概要设计说明书.md`
-8. `docs/AegisMonitor/09-接口原型.md`
-9. `docs/AegisMonitor/10-数据模型原型.md`
-10. `docs/AegisMonitor/TDD进展记录.md`
+3. `docs/AegisMonitor/20-课题二要求符合性审查.md`
+4. `docs/AegisMonitor/17-测试记录与验收截图.md`
+5. `docs/AegisMonitor/15-多主机接入与演示部署说明.md`
+6. `docs/AegisMonitor/01-产品需求文档-PRD.md`
+7. `docs/AegisMonitor/02-需求规格说明书.md`
+8. `docs/AegisMonitor/08-概要设计说明书.md`
+9. `docs/AegisMonitor/09-接口原型.md`
+10. `docs/AegisMonitor/10-数据模型原型.md`
+11. `docs/AegisMonitor/TDD进展记录.md`
 
 其中 `18-项目讲解手册-答辩版.md` 是给答辩者看的总手册，覆盖项目构成、数据流、关键代码、演示路线、常见追问和边界说明。
 

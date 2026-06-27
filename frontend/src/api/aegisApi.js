@@ -16,11 +16,14 @@ export function createAegisApi(options = {}) {
       )
       return toLatestMetric(data)
     },
-    async getHostMetricHistory(hostId, range = '10m') {
-      const data = await request(
-        fetcher,
-        `/api/metrics/host/history?hostId=${encodeURIComponent(hostId)}&range=${encodeURIComponent(range)}`
-      )
+    async getHostMetricHistory(hostId, range = '10m', options = {}) {
+      const params = new URLSearchParams({ hostId })
+      if (options.date) {
+        params.set('date', options.date)
+      } else {
+        params.set('range', range)
+      }
+      const data = await request(fetcher, `/api/metrics/host/history?${params.toString()}`)
       return toMetricHistory(data)
     },
     async listServices(hostId) {
@@ -102,6 +105,11 @@ function toLatestMetric(metric) {
     reportedAt: metric.reportedAt ?? '',
     cpuUsagePercent: Number(metric.cpuUsagePercent ?? 0),
     memoryUsagePercent: Number(metric.memoryUsagePercent ?? 0),
+    diskUsagePercent: Number(metric.diskUsagePercent ?? 0),
+    networkBytesSent: Number(metric.networkBytesSent ?? 0),
+    networkBytesReceived: Number(metric.networkBytesReceived ?? 0),
+    networkSentMb: toMb(Number(metric.networkBytesSent ?? 0)),
+    networkReceivedMb: toMb(Number(metric.networkBytesReceived ?? 0)),
     tcpConnectionCount: Number(metric.tcpConnectionCount ?? 0)
   }
 }
@@ -111,10 +119,16 @@ function toMetricHistory(history) {
   return {
     hostId: history?.hostId ?? '',
     range: history?.range ?? '10m',
+    date: history?.date ?? '',
     points: points.map((point) => ({
       reportedAt: point.reportedAt ?? '',
       cpuUsagePercent: Number(point.cpuUsagePercent ?? 0),
       memoryUsagePercent: Number(point.memoryUsagePercent ?? 0),
+      diskUsagePercent: Number(point.diskUsagePercent ?? 0),
+      networkBytesSent: Number(point.networkBytesSent ?? 0),
+      networkBytesReceived: Number(point.networkBytesReceived ?? 0),
+      networkSentMb: toMb(Number(point.networkBytesSent ?? 0)),
+      networkReceivedMb: toMb(Number(point.networkBytesReceived ?? 0)),
       tcpConnectionCount: Number(point.tcpConnectionCount ?? 0)
     }))
   }
@@ -133,6 +147,9 @@ function toService(service) {
     portsText: ports.length > 0 ? ports.join(', ') : '--',
     status: service.status ?? 'UNKNOWN',
     commandLine: service.commandLine ?? '',
+    processCpuPercent: Number(service.processCpuPercent ?? 0),
+    processMemoryBytes: Number(service.processMemoryBytes ?? 0),
+    processMemoryMb: toMb(Number(service.processMemoryBytes ?? 0)),
     lastSeenAt: service.lastSeenAt ?? ''
   }
 }
@@ -146,7 +163,7 @@ function toAlert(alert) {
     hostId: alert.hostId,
     metricName: alert.metricName,
     severity: alert.severity ?? 'UNKNOWN',
-    thresholdValue: Number(alert.thresholdValue ?? 0),
+    thresholdValue: Number(alert.thresholdValue ?? alert.threshold ?? 0),
     actualValue: Number(alert.actualValue ?? 0),
     status,
     occurredAt: alert.occurredAt ?? '',
@@ -167,6 +184,10 @@ function toDemoSeedResult(result) {
 
 function toGb(bytes) {
   return Math.round((bytes / 1024 / 1024 / 1024) * 10) / 10
+}
+
+function toMb(bytes) {
+  return Math.round((bytes / 1024 / 1024) * 10) / 10
 }
 
 function isDemoHost(agent) {

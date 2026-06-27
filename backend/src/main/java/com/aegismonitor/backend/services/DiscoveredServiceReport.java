@@ -12,6 +12,8 @@ public final class DiscoveredServiceReport {
     private final List<Integer> ports;
     private final String status;
     private final String commandLine;
+    private final double processCpuPercent;
+    private final long processMemoryBytes;
 
     public DiscoveredServiceReport(
         String serviceName,
@@ -22,6 +24,20 @@ public final class DiscoveredServiceReport {
         String status,
         String commandLine
     ) {
+        this(serviceName, stackType, processName, pid, ports, status, commandLine, 0.0, 0L);
+    }
+
+    public DiscoveredServiceReport(
+        String serviceName,
+        String stackType,
+        String processName,
+        int pid,
+        List<Integer> ports,
+        String status,
+        String commandLine,
+        double processCpuPercent,
+        long processMemoryBytes
+    ) {
         this.serviceName = serviceName;
         this.stackType = stackType;
         this.processName = processName;
@@ -29,33 +45,25 @@ public final class DiscoveredServiceReport {
         this.ports = Collections.unmodifiableList(new ArrayList<>(ports));
         this.status = status;
         this.commandLine = commandLine;
+        this.processCpuPercent = processCpuPercent;
+        this.processMemoryBytes = processMemoryBytes;
     }
 
-    public String serviceName() {
-        return serviceName;
-    }
+    public String serviceName() { return serviceName; }
 
-    public String stackType() {
-        return stackType;
-    }
+    public String stackType() { return stackType; }
 
-    public String processName() {
-        return processName;
-    }
+    public String processName() { return processName; }
 
-    public int pid() {
-        return pid;
-    }
+    public int pid() { return pid; }
 
-    public List<Integer> ports() {
-        return ports;
-    }
+    public List<Integer> ports() { return ports; }
 
-    public String status() {
-        return status;
-    }
+    public String status() { return status; }
 
-    public String commandLine() {
-        return commandLine;
-    }
+    public String commandLine() { return commandLine; }
+
+    public double processCpuPercent() { return processCpuPercent; }
+
+    public long processMemoryBytes() { return processMemoryBytes; }
 }

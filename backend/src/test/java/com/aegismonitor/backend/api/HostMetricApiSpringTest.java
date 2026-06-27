@@ -81,6 +81,15 @@ class HostMetricApiSpringTest {
             .andExpect(jsonPath("$.message").value("metrics accepted"))
             .andExpect(jsonPath("$.data.written").value(true))
             .andExpect(jsonPath("$.data.generatedAlertCount").value(0));
+
+        mockMvc.perform(
+                get("/api/metrics/host/latest")
+                    .queryParam("hostId", "host_001")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.diskUsagePercent").value(60.0))
+            .andExpect(jsonPath("$.data.networkBytesSent").value(123456789))
+            .andExpect(jsonPath("$.data.networkBytesReceived").value(987654321));
     }
 
     @Test
@@ -167,6 +176,48 @@ class HostMetricApiSpringTest {
             .andExpect(jsonPath("$.data.points[0].cpuUsagePercent").value(42.5))
             .andExpect(jsonPath("$.data.points[1].reportedAt").value("2026-06-04T17:30:00+08:00"))
             .andExpect(jsonPath("$.data.points[1].tcpConnectionCount").value(144));
+    }
+
+    @Test
+    void returnsTwentyFourHourHostMetricHistory() throws Exception {
+        JsonNode identity = registerAgent();
+
+        reportHostMetrics(identity, "2026-06-03T17:29:00+08:00", 20.0, 40.0, 60);
+        reportHostMetrics(identity, "2026-06-03T17:31:00+08:00", 25.0, 45.0, 80);
+        reportHostMetrics(identity, "2026-06-04T17:30:00+08:00", 67.2, 58.5, 144);
+
+        mockMvc.perform(
+                get("/api/metrics/host/history")
+                    .queryParam("hostId", "host_001")
+                    .queryParam("range", "24h")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.range").value("24h"))
+            .andExpect(jsonPath("$.data.points.length()").value(2))
+            .andExpect(jsonPath("$.data.points[0].reportedAt").value("2026-06-03T17:31:00+08:00"))
+            .andExpect(jsonPath("$.data.points[1].reportedAt").value("2026-06-04T17:30:00+08:00"));
+    }
+
+    @Test
+    void returnsHostMetricHistoryForSelectedDate() throws Exception {
+        JsonNode identity = registerAgent();
+
+        reportHostMetrics(identity, "2026-06-03T23:59:00+08:00", 20.0, 40.0, 60);
+        reportHostMetrics(identity, "2026-06-04T09:15:00+08:00", 32.0, 45.0, 72);
+        reportHostMetrics(identity, "2026-06-04T17:30:00+08:00", 67.2, 58.5, 144);
+        reportHostMetrics(identity, "2026-06-05T00:00:00+08:00", 26.0, 44.0, 90);
+
+        mockMvc.perform(
+                get("/api/metrics/host/history")
+                    .queryParam("hostId", "host_001")
+                    .queryParam("date", "2026-06-04")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.range").value("day"))
+            .andExpect(jsonPath("$.data.date").value("2026-06-04"))
+            .andExpect(jsonPath("$.data.points.length()").value(2))
+            .andExpect(jsonPath("$.data.points[0].reportedAt").value("2026-06-04T09:15:00+08:00"))
+            .andExpect(jsonPath("$.data.points[1].reportedAt").value("2026-06-04T17:30:00+08:00"));
     }
 
     @Test

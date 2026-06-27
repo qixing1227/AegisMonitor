@@ -8,6 +8,7 @@ export function createHostDashboardStore(options) {
   const latestMetric = ref(null)
   const metricHistory = ref([])
   const metricHistoryRange = ref('10m')
+  const metricHistoryDate = ref('')
   const historyLoading = ref(false)
   const historyError = ref('')
   const services = ref([])
@@ -157,16 +158,39 @@ export function createHostDashboardStore(options) {
     if (!hostId || typeof api.getHostMetricHistory !== 'function') {
       return []
     }
-    const result = await api.getHostMetricHistory(hostId, metricHistoryRange.value)
+    const result = await api.getHostMetricHistory(hostId, metricHistoryRange.value, {
+      date: metricHistoryDate.value
+    })
     return result.points
   }
 
   async function setMetricHistoryRange(range) {
-    if (!['10m', '30m', '1h'].includes(range)) {
+    if (!['10m', '30m', '1h', '6h', '24h'].includes(range)) {
       throw new Error(`Unsupported metric history range: ${range}`)
     }
 
     metricHistoryRange.value = range
+    metricHistoryDate.value = ''
+    if (selectedHost.value === null) {
+      metricHistory.value = []
+      return
+    }
+
+    const previousHistory = metricHistory.value
+    historyLoading.value = true
+    historyError.value = ''
+    try {
+      metricHistory.value = await loadMetricHistory(selectedHostId.value)
+    } catch (caughtError) {
+      metricHistory.value = previousHistory
+      historyError.value = caughtError instanceof Error ? caughtError.message : String(caughtError)
+    } finally {
+      historyLoading.value = false
+    }
+  }
+
+  async function setMetricHistoryDate(date) {
+    metricHistoryDate.value = date ?? ''
     if (selectedHost.value === null) {
       metricHistory.value = []
       return
@@ -237,6 +261,7 @@ export function createHostDashboardStore(options) {
     latestMetric,
     metricHistory,
     metricHistoryRange,
+    metricHistoryDate,
     historyLoading,
     historyError,
     services,
@@ -254,7 +279,8 @@ export function createHostDashboardStore(options) {
     loadAlerts,
     ackAlert,
     seedDemoData,
-    setMetricHistoryRange
+    setMetricHistoryRange,
+    setMetricHistoryDate
   }
 }
 

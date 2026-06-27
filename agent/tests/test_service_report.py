@@ -71,6 +71,8 @@ class ServiceReportTest(unittest.TestCase):
                     ports=[8080],
                     status="RUNNING",
                     command_line="java -jar aegis-backend.jar",
+                    process_cpu_percent=2.5,
+                    process_memory_bytes=134217728,
                 ),
                 DiscoveredService(
                     service_name="mysql",
@@ -96,6 +98,8 @@ class ServiceReportTest(unittest.TestCase):
         self.assertEqual(captured["body"]["services"][0]["stackType"], "SPRING_BOOT")
         self.assertEqual(captured["body"]["services"][0]["serviceName"], "aegis-backend")
         self.assertEqual(captured["body"]["services"][0]["ports"], [8080])
+        self.assertEqual(captured["body"]["services"][0]["processCpuPercent"], 2.5)
+        self.assertEqual(captured["body"]["services"][0]["processMemoryBytes"], 134217728)
         self.assertEqual(captured["body"]["services"][1]["processName"], "mysqld.exe")
 
 

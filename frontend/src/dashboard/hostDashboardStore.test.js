@@ -180,7 +180,7 @@ test('dashboard loads host metric history and changes the selected range', async
           {
             id: 'host_001',
             hostname: 'DESKTOP-AEGIS',
-            alias: '答辩真实主机',
+            alias: '??????',
             ipAddress: '192.168.1.10',
             os: 'Windows 11',
             cpuCores: 8,
@@ -199,15 +199,16 @@ test('dashboard loads host metric history and changes the selected range', async
           tcpConnectionCount: 128
         }
       },
-      async getHostMetricHistory(hostId, range) {
-        historyRequests.push({ hostId, range })
+      async getHostMetricHistory(hostId, range, options = {}) {
+        historyRequests.push({ hostId, range, date: options.date ?? '' })
         return {
           hostId,
-          range,
+          range: options.date ? 'day' : range,
+          date: options.date ?? '',
           points: [
             {
               reportedAt: '2026-06-06T10:35:00+08:00',
-              cpuUsagePercent: range === '1h' ? 55.5 : 42.6,
+              cpuUsagePercent: options.date ? 66.6 : range === '24h' ? 58.5 : 42.6,
               memoryUsagePercent: 61.2,
               tcpConnectionCount: 128
             }
@@ -218,14 +219,17 @@ test('dashboard loads host metric history and changes the selected range', async
   })
 
   await store.loadHosts()
-  await store.setMetricHistoryRange('1h')
+  await store.setMetricHistoryDate('2026-06-06')
+  await store.setMetricHistoryRange('24h')
 
   assert.deepEqual(historyRequests, [
-    { hostId: 'host_001', range: '10m' },
-    { hostId: 'host_001', range: '1h' }
+    { hostId: 'host_001', range: '10m', date: '' },
+    { hostId: 'host_001', range: '10m', date: '2026-06-06' },
+    { hostId: 'host_001', range: '24h', date: '' }
   ])
-  assert.equal(store.metricHistoryRange.value, '1h')
-  assert.equal(store.metricHistory.value[0].cpuUsagePercent, 55.5)
+  assert.equal(store.metricHistoryRange.value, '24h')
+  assert.equal(store.metricHistoryDate.value, '')
+  assert.equal(store.metricHistory.value[0].cpuUsagePercent, 58.5)
   assert.equal(store.historyLoading.value, false)
   assert.equal(store.historyError.value, '')
 })

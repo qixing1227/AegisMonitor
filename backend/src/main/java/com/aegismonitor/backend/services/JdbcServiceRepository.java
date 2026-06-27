@@ -15,6 +15,7 @@ public final class JdbcServiceRepository implements ServiceRepository {
 
     public JdbcServiceRepository(DataSource dataSource) {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
+        ensureServiceMetricColumns();
     }
 
     @Override
@@ -59,8 +60,10 @@ public final class JdbcServiceRepository implements ServiceRepository {
                 ports_json,
                 status,
                 command_line,
-                last_seen_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                last_seen_at,
+                process_cpu_percent,
+                process_memory_bytes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             service.hostId(),
             service.serviceName(),
@@ -70,7 +73,9 @@ public final class JdbcServiceRepository implements ServiceRepository {
             toPortsJson(service.ports()),
             service.status(),
             service.commandLine(),
-            service.lastSeenAt()
+            service.lastSeenAt(),
+            service.processCpuPercent(),
+            service.processMemoryBytes()
         );
     }
 
@@ -84,7 +89,9 @@ public final class JdbcServiceRepository implements ServiceRepository {
                 ports_json = ?,
                 status = ?,
                 command_line = ?,
-                last_seen_at = ?
+                last_seen_at = ?,
+                process_cpu_percent = ?,
+                process_memory_bytes = ?
             WHERE host_id = ? AND stack_type = ? AND service_name = ?
             """,
             service.processName(),
@@ -93,10 +100,25 @@ public final class JdbcServiceRepository implements ServiceRepository {
             service.status(),
             service.commandLine(),
             service.lastSeenAt(),
+            service.processCpuPercent(),
+            service.processMemoryBytes(),
             service.hostId(),
             service.stackType(),
             service.serviceName()
         );
+    }
+
+    private void ensureServiceMetricColumns() {
+        ensureColumn("process_cpu_percent DOUBLE NOT NULL DEFAULT 0");
+        ensureColumn("process_memory_bytes BIGINT NOT NULL DEFAULT 0");
+    }
+
+    private void ensureColumn(String columnDefinition) {
+        try {
+            jdbcTemplate.execute("ALTER TABLE service_instances ADD COLUMN " + columnDefinition);
+        } catch (RuntimeException ignored) {
+            // Fresh schemas already have these columns; old local MySQL databases need the migration once.
+        }
     }
 
     private static String selectSql() {
@@ -110,7 +132,9 @@ public final class JdbcServiceRepository implements ServiceRepository {
                 ports_json,
                 status,
                 command_line,
-                last_seen_at
+                last_seen_at,
+                process_cpu_percent,
+                process_memory_bytes
             FROM service_instances
             """;
     }
@@ -125,7 +149,9 @@ public final class JdbcServiceRepository implements ServiceRepository {
             fromPortsJson(rs.getString("ports_json")),
             rs.getString("status"),
             rs.getString("command_line"),
-            rs.getString("last_seen_at")
+            rs.getString("last_seen_at"),
+            rs.getDouble("process_cpu_percent"),
+            rs.getLong("process_memory_bytes")
         );
     }
 
